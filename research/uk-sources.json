@@ -1,0 +1,506 @@
+{
+  "checked": "2026-10-14",
+  "scope": "Five existing UK directory records refreshed; two research/learning sources added. Official websites checked; no institution has registered or endorsed IDEBP by being listed.",
+  "sources": [
+    {
+      "id": "college-toolkit",
+      "name": "Crime Reduction Toolkit",
+      "initials": "CoP",
+      "owner": "College of Policing",
+      "country": "United Kingdom",
+      "coverage": [
+        "United Kingdom",
+        "International"
+      ],
+      "types": [
+        "Official",
+        "Research collection"
+      ],
+      "content": [
+        "Evidence reviews",
+        "Research summaries"
+      ],
+      "methods": [
+        "Systematic reviews"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Neighbourhood policing",
+        "Violence prevention"
+      ],
+      "languages": [
+        "English"
+      ],
+      "access": "Free",
+      "url": "https://www.college.police.uk/research/crime-reduction-toolkit",
+      "about": "Find summaries of crime reduction interventions, with links to systematic reviews and information about implementation, costs and settings where interventions were studied.",
+      "colour": "#174d79",
+      "searchTerms": [
+        "hot spots",
+        "hotspot",
+        "what works",
+        "crime reduction",
+        "ASB",
+        "antisocial behaviour"
+      ],
+      "signals": {
+        "organisationConfirmed": true
+      },
+      "status": "listed",
+      "provenance": "Editor-added",
+      "checked": "2026-10-14",
+      "social": [],
+      "references": [],
+      "verificationUrls": [
+        "https://www.college.police.uk/research/crime-reduction-toolkit",
+        "https://www.college.police.uk/research"
+      ],
+      "brand": {
+        "colour": null,
+        "evidence": "No logo or brand imitation: use normal directory typography."
+      },
+      "logoStatus": "withheld-permission-required",
+      "logoNotes": "The College explicitly limits use of its logo as a link to its website. Hypertext links are permitted. No logo included pending permission.",
+      "logoPolicyUrl": "https://www.college.police.uk/about/intellectual-property",
+      "reviewNotes": [
+        "Official indexed pages support the summary; direct website fetch returned HTTP 403. Source methods refer to the collection, not appraisal of every item."
+      ],
+      "summaryMethod": "AI-drafted from official source descriptions",
+      "summaryLanguage": "English",
+      "claimed": false,
+      "logo": null
+    },
+    {
+      "id": "sebp",
+      "name": "Society of Evidence Based Policing",
+      "initials": "SEBP",
+      "owner": "Society of Evidence Based Policing",
+      "country": "United Kingdom",
+      "coverage": [
+        "United Kingdom",
+        "International"
+      ],
+      "types": [
+        "EBP society",
+        "Professional society",
+        "Charity"
+      ],
+      "content": [
+        "Learning resources",
+        "Research summaries",
+        "Practice examples"
+      ],
+      "methods": [],
+      "topics": [
+        "Neighbourhood policing",
+        "Leadership",
+        "Crime prevention"
+      ],
+      "languages": [
+        "English"
+      ],
+      "access": "Mixed",
+      "url": "https://www.sebp.police.uk/",
+      "about": "Find research briefings, articles, events and member resources from the independent UK society connecting police practitioners, researchers and evidence-based policing networks.",
+      "colour": "#002346",
+      "searchTerms": [
+        "society",
+        "EBP",
+        "conference",
+        "learning",
+        "training"
+      ],
+      "signals": {},
+      "status": "listed",
+      "provenance": "Editor-added",
+      "checked": "2026-10-14",
+      "social": [
+        {
+          "label": "LinkedIn",
+          "url": "https://www.linkedin.com/company/sebp-uk/"
+        },
+        {
+          "label": "YouTube",
+          "url": "https://www.youtube.com/@sebp-uk"
+        }
+      ],
+      "references": [],
+      "verificationUrls": [
+        "https://www.sebp.police.uk/",
+        "https://www.sebp.police.uk/news"
+      ],
+      "brand": {
+        "colour": "#002346",
+        "accent": "#ff9000",
+        "background": "#ffffff",
+        "evidence": "Colours observed in the organisation’s original businessLogo asset; not a published brand guideline."
+      },
+      "logoStatus": "official-site-asset",
+      "logoNotes": "Use original square wordmark on white. Official site favicon is a different dated illustration and was deliberately excluded.",
+      "reviewNotes": [
+        "Official homepage describes SEBP as an independent registered UK charity. These links are found on the official site, not evidence of registration with IDEBP."
+      ],
+      "summaryMethod": "AI-drafted from official source descriptions",
+      "summaryLanguage": "English",
+      "claimed": false,
+      "logo": "/assets/sources/sebp-logo.jpg",
+      "logoSource": "https://static.wixstatic.com/media/6e818f_e1684a5a3b8a45369fd3e07404f0c311~mv2.jpg"
+    },
+    {
+      "id": "college-practice",
+      "name": "Practice Bank",
+      "initials": "CoP",
+      "owner": "College of Policing",
+      "country": "United Kingdom",
+      "coverage": [
+        "United Kingdom"
+      ],
+      "types": [
+        "Official",
+        "Practice collection"
+      ],
+      "content": [
+        "Practice examples",
+        "Implementation guides"
+      ],
+      "methods": [],
+      "topics": [
+        "Neighbourhood policing",
+        "Crime prevention",
+        "Leadership"
+      ],
+      "languages": [
+        "English"
+      ],
+      "access": "Free",
+      "url": "https://www.college.police.uk/support-forces/practices",
+      "about": "Browse accounts of policing and community safety interventions, including implementation details, local learning and available evaluation information from participating organisations.",
+      "colour": "#174d79",
+      "searchTerms": [
+        "ASB",
+        "antisocial behaviour",
+        "SARA",
+        "problem solving",
+        "best practice",
+        "operational"
+      ],
+      "signals": {
+        "organisationConfirmed": true
+      },
+      "status": "listed",
+      "provenance": "Editor-added",
+      "checked": "2026-10-14",
+      "social": [],
+      "references": [],
+      "verificationUrls": [
+        "https://www.college.police.uk/support-forces/practices",
+        "https://www.college.police.uk/article/practice-bank-interventions-crime-reduction"
+      ],
+      "brand": {
+        "colour": null,
+        "evidence": "No logo or brand imitation: use normal directory typography."
+      },
+      "logoStatus": "withheld-permission-required",
+      "logoNotes": "The College explicitly limits use of its logo as a link to its website. Hypertext links are permitted. No logo included pending permission.",
+      "logoPolicyUrl": "https://www.college.police.uk/about/intellectual-property",
+      "reviewNotes": [
+        "Removed blanket Process evaluation classification: entries have different evaluation arrangements, including new/innovative practice. Direct website fetch returned HTTP 403; official indexed description verified."
+      ],
+      "summaryMethod": "AI-drafted from official source descriptions",
+      "summaryLanguage": "English",
+      "claimed": false,
+      "logo": null
+    },
+    {
+      "id": "yef",
+      "name": "Youth Endowment Fund Toolkit",
+      "initials": "YEF",
+      "owner": "Youth Endowment Fund",
+      "country": "United Kingdom",
+      "coverage": [
+        "United Kingdom",
+        "International"
+      ],
+      "types": [
+        "Charity",
+        "Research collection"
+      ],
+      "content": [
+        "Evidence reviews",
+        "Implementation guides"
+      ],
+      "methods": [
+        "Systematic reviews"
+      ],
+      "topics": [
+        "Violence prevention",
+        "Safeguarding",
+        "Crime prevention"
+      ],
+      "languages": [
+        "English",
+        "Welsh"
+      ],
+      "access": "Free",
+      "url": "https://youthendowmentfund.org.uk/toolkit/",
+      "about": "Explore research summaries on preventing violence involving children and young people, with information about evidence, costs and implementation across policing and other services.",
+      "colour": "#80ADB5",
+      "searchTerms": [
+        "youth",
+        "children",
+        "county lines",
+        "violence",
+        "prevention",
+        "diversion"
+      ],
+      "signals": {},
+      "status": "listed",
+      "provenance": "Editor-added",
+      "checked": "2026-10-14",
+      "social": [],
+      "references": [],
+      "verificationUrls": [
+        "https://youthendowmentfund.org.uk/toolkit/",
+        "https://youthendowmentfund.org.uk/toolkit-welsh/",
+        "https://youthendowmentfund.org.uk/yef-toolkit-what-works-to-prevent-youth-violence/toolkit-what-it-includes/"
+      ],
+      "brand": {
+        "colour": "#80ADB5",
+        "accent": "#ED6E63",
+        "background": "#ffffff",
+        "evidence": "Exact colour values present in official logo SVG and main website stylesheet."
+      },
+      "logoStatus": "official-site-asset",
+      "logoNotes": "Original SVG, static paths only; no scripts, event handlers, embedded foreign content or external references. Preserve full logo.",
+      "reviewNotes": [
+        "Added Welsh: the official Welsh toolkit contains translated intervention titles and descriptions, not merely interface labels. Original research languages may vary; directory field describes available source content."
+      ],
+      "summaryMethod": "AI-drafted from official source descriptions",
+      "summaryLanguage": "English",
+      "claimed": false,
+      "logo": "/assets/sources/yef-logo.svg",
+      "logoSource": "https://youthendowmentfund.org.uk/wp-content/themes/dias/dist/images/logo.svg"
+    },
+    {
+      "id": "tap",
+      "name": "Thinking About Policing",
+      "initials": "TAP",
+      "owner": "Nathan Tracey",
+      "country": "United Kingdom",
+      "coverage": [
+        "United Kingdom"
+      ],
+      "types": [
+        "Independent",
+        "Blog"
+      ],
+      "content": [
+        "Commentary",
+        "Research summaries",
+        "Practice examples"
+      ],
+      "methods": [],
+      "topics": [
+        "Leadership",
+        "Technology",
+        "Neighbourhood policing",
+        "Safeguarding"
+      ],
+      "languages": [
+        "English"
+      ],
+      "access": "Free",
+      "url": "https://thinkingaboutpolicing.org/",
+      "about": "Read articles connecting policing research, policy, leadership and operational experience, with links to original sources. Published independently by directory founder Nathan Tracey.",
+      "colour": "#040a14",
+      "searchTerms": [
+        "blog",
+        "ideas",
+        "AI",
+        "drones",
+        "police reform",
+        "independent"
+      ],
+      "signals": {},
+      "status": "listed",
+      "provenance": "Editor-added",
+      "checked": "2026-10-14",
+      "social": [],
+      "references": [],
+      "verificationUrls": [
+        "https://thinkingaboutpolicing.org/about/",
+        "https://thinkingaboutpolicing.org/resources/"
+      ],
+      "brand": {
+        "colour": "#040a14",
+        "accent": "#9ff7fa",
+        "background": "#ffffff",
+        "evidence": "Colour values observed in official homepage; logo remains original artwork."
+      },
+      "logoStatus": "official-site-asset",
+      "logoNotes": "Original 512-pixel transparent mark obtained from the published site.",
+      "reviewNotes": [
+        "Retain founder conflict disclosure. Primary authored content is English; automatic interface/content translation options are not treated as independently authored research languages."
+      ],
+      "summaryMethod": "AI-drafted from official source descriptions",
+      "summaryLanguage": "English",
+      "claimed": false,
+      "logo": "/assets/sources/tap-logo.png",
+      "logoSource": "https://thinkingaboutpolicing.org/logo-mark.png"
+    },
+    {
+      "id": "police-science-dr",
+      "name": "Police Science Dr",
+      "initials": "PSD",
+      "owner": "Raven’s Ocean Ltd / Dr Susanne Knabe-Nicol",
+      "country": "United Kingdom",
+      "coverage": [
+        "International",
+        "United Kingdom"
+      ],
+      "types": [
+        "Company",
+        "Learning provider"
+      ],
+      "content": [
+        "Research summaries",
+        "Learning resources"
+      ],
+      "methods": [],
+      "topics": [
+        "Investigations",
+        "Leadership",
+        "Crime prevention",
+        "Police wellbeing"
+      ],
+      "languages": [
+        "English"
+      ],
+      "access": "Mixed",
+      "url": "https://www.policesciencedr.com/",
+      "about": "Find short research briefings, videos and podcasts for policing practitioners, alongside transcripts and online courses covering investigations, psychology and evidence-based practice.",
+      "colour": "#27b4a5",
+      "searchTerms": [
+        "Police Science Dr",
+        "Susanne Knabe-Nicol",
+        "investigative psychology",
+        "podcast",
+        "research snippets",
+        "courses"
+      ],
+      "signals": {},
+      "brand": {
+        "colour": "#27b4a5",
+        "accent": "#512681",
+        "background": "#000000",
+        "evidence": "Approximate teal and purple sampled from the official masthead artwork; not a published brand guideline."
+      },
+      "verificationUrls": [
+        "https://www.policesciencedr.com/",
+        "https://www.policesciencedr.com/about",
+        "https://www.policesciencedr.com/privacy",
+        "https://www.academy.policesciencedr.com/"
+      ],
+      "logoStatus": "official-site-asset",
+      "logoNotes": "Original masthead image, 1920 × 910 pixels. Preserve the black background and full mark; no artificial reconstruction.",
+      "reviewNotes": [
+        "Homepage videos/podcasts are public, transcripts require free mailing-list membership; academy courses have their own terms. Company owner is stated on official privacy page. Logo provenance is verified, but no separate brand reuse permission was obtained."
+      ],
+      "social": [
+        {
+          "label": "X",
+          "url": "https://twitter.com/PoliceScienceDr"
+        },
+        {
+          "label": "YouTube",
+          "url": "http://www.youtube.com/PoliceScienceDr"
+        }
+      ],
+      "checked": "2026-10-14",
+      "status": "listed",
+      "provenance": "Editor-added",
+      "claimed": false,
+      "references": [],
+      "summaryMethod": "AI-drafted from official source descriptions",
+      "summaryLanguage": "English",
+      "logo": "/assets/sources/police-science-dr-logo.jpg",
+      "logoSource": "https://le-cdn.website-editor.net/s/86f6c89d21494367af33132acfb6a37c/dms3rep/multi/opt/Police_Science_Dr_BlackBG-1920w.jpg?Expires=1794423708&Signature=ka-T4gfyfpzmEQEa9guUlFH9yYhK0Vxew-6Ny7RSX02v9lwtDkwqM-cLsy~cAP5Qa2WLxOpqH1CENsBKBLzuHt3JQ99ARxyT4LmvlU8HuC81nKaWJwXcCYSY6AV6DIML3ghQ4X5hXqRh2eRCVFdBWAmd9FLbpX2hAPeP8YRzA6EZk7ros-wotJQHip8IY3GWQWXtnK0qh3xajAxAu3GEZEMoTl91UtZtszby0wK2Rrdt2ILccL9XRF-gDMeBTturx36dK8LPaYUERCnta2tmwoDj-1vExjofRsafuwnRFwFdNsETNDkcEedbkmVSwT8SpOKrAIadwcJjPFq-AUyV4Q__&Key-Pair-Id=K2NXBXLF010TJW"
+    },
+    {
+      "id": "cambridge-ebp",
+      "name": "Cambridge Centre for Evidence-Based Policing",
+      "initials": "CCEBP",
+      "owner": "Cambridge Centre for Evidence-Based Policing Ltd",
+      "country": "United Kingdom",
+      "coverage": [
+        "International",
+        "United Kingdom"
+      ],
+      "types": [
+        "Company",
+        "Learning provider"
+      ],
+      "content": [
+        "Original research",
+        "Learning resources",
+        "Practice examples"
+      ],
+      "methods": [
+        "Randomised controlled trials",
+        "Quasi-experimental"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Investigations",
+        "Leadership",
+        "Neighbourhood policing"
+      ],
+      "languages": [
+        "English"
+      ],
+      "access": "Mixed",
+      "url": "https://www.cambridge-ebp.co.uk/",
+      "about": "Locate policing research, crime harm resources and professional training from a research and consultancy organisation working with police services internationally.",
+      "colour": "#130d60",
+      "searchTerms": [
+        "Cambridge",
+        "CCEBP",
+        "Lawrence Sherman",
+        "Crime Harm Index",
+        "targeting testing tracking",
+        "research consultancy",
+        "training"
+      ],
+      "signals": {},
+      "brand": {
+        "colour": "#130d60",
+        "accent": "#b39329",
+        "background": "#130d60",
+        "evidence": "Colours sampled from the original official masthead PNG; not a published brand guideline."
+      },
+      "verificationUrls": [
+        "https://www.cambridge-ebp.co.uk/",
+        "https://www.cambridge-ebp.co.uk/research-and-consultancy",
+        "https://www.cambridge-ebp.co.uk/courses",
+        "https://www.cambridge-ebp.co.uk/crime-harm-index"
+      ],
+      "logoStatus": "official-site-asset",
+      "logoNotes": "Original official 490 × 116 wordmark. Suitable at up to approximately 245 CSS pixels for sharp rendering; do not enlarge as a full-width raster banner.",
+      "reviewNotes": [
+        "Classified as Company and Learning provider, not the University of Cambridge. Official footer identifies a limited company; research page describes RCT and quasi-experimental evaluation. Courses and consultancy may be paid."
+      ],
+      "social": [],
+      "checked": "2026-10-14",
+      "status": "listed",
+      "provenance": "Editor-added",
+      "claimed": false,
+      "references": [],
+      "summaryMethod": "AI-drafted from official source descriptions",
+      "summaryLanguage": "English",
+      "logo": "/assets/sources/cambridge-ebp-logo.png",
+      "logoSource": "https://images.squarespace-cdn.com/content/v1/68ef3b2e683c7478938949a3/d9e3b5ff-8710-4964-899b-db2336476634/Cambridge-Center-Evidence-Based-Policing-logo-full-v2.png"
+    }
+  ],
+  "assetPolicy": "Logos are attributed original source identifiers. No photographic banners were downloaded. College of Policing logos withheld because its official page explicitly limits this link use.",
+  "visualChecks": "All five supplied official logos visually inspected at display size, including YEF SVG rendered in Chromium. YEF SVG also inspected as static vector paths with no active or external content."
+}

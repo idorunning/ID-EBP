@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "idebp-preview",
+  "main": "dist/worker.mjs",
+  "compatibility_date": "2026-10-14",
+  "workers_dev": true,
+  "routes": [
+    {"pattern": "id-ebp.org", "custom_domain": true},
+    {"pattern": "www.id-ebp.org", "custom_domain": true}
+  ],
+  "vars": {"DIRECTORY_API_URL":"https://hvwmystbqlocjixvwgfl.supabase.co/functions/v1/directory-api","AUTH_EMAIL_ENABLED":"true","WORKFLOW_NOTIFICATIONS_ENABLED":"true"},
+  "triggers":{"crons":["*/30 * * * *"]},
+  "send_email": [{"name":"EMAIL","allowed_sender_addresses":["sign-in@auth.id-ebp.org"]}],
+  "observability": {"enabled": true, "head_sampling_rate": 0.1, "redact_query_string": true}
+}

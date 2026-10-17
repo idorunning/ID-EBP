@@ -1,0 +1,453 @@
+[
+  {
+    "id": "global-policing-database",
+    "name": "Global Policing Database",
+    "initials": "GPD",
+    "owner": "University of Queensland / University of South Carolina",
+    "country": "Australia",
+    "coverage": [
+      "International",
+      "Australia",
+      "United Kingdom",
+      "United States"
+    ],
+    "types": [
+      "Academic",
+      "Research collection"
+    ],
+    "content": [
+      "Original research",
+      "Evidence reviews"
+    ],
+    "methods": [
+      "Randomised controlled trials",
+      "Quasi-experimental",
+      "Systematic reviews"
+    ],
+    "topics": [
+      "Crime prevention",
+      "Investigations",
+      "Police wellbeing",
+      "Leadership"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Mixed",
+    "url": "https://gpd.uq.edu.au/",
+    "about": "A subscription database of international evaluations of policing interventions, with searchable study details and links to published papers, reports and theses.",
+    "colour": "#0047c7",
+    "searchTerms": [
+      "controlled trials",
+      "evaluation",
+      "global",
+      "experimental",
+      "training"
+    ],
+    "signals": {
+      "organisationConfirmed": true
+    },
+    "status": "listed",
+    "provenance": "Editor-added",
+    "checked": "2026-10-14",
+    "social": [],
+    "references": [],
+    "summaryMethod": "AI-drafted from the linked official pages; factual signposting description, not an evidence appraisal.",
+    "verificationUrls": [
+      "https://gpd.uq.edu.au/",
+      "https://gpd.uq.edu.au/our-services/"
+    ],
+    "sourcePageChecked": true,
+    "registrantVerified": false,
+    "logo": "/assets/sources/global-policing-database-logo.svg",
+    "logoUrl": "https://gpd.uq.edu.au/wp-content/uploads/2023/04/gpd-logo.svg",
+    "logoAlt": "Global Policing Database",
+    "brandBackground": "#ffffff",
+    "accessNote": "Database search requires a subscription; introductory information is public and linked full texts have separate access conditions.",
+    "sourceNotes": "The current homepage identifies UQ and University of South Carolina as collaborators. Its historical creation note still mentions QUT. English interface and study metadata verified; languages of underlying studies were not exhaustively checked."
+  },
+  {
+    "id": "cebcp-matrix",
+    "name": "Evidence-Based Policing Matrix",
+    "initials": "M",
+    "owner": "Center for Evidence-Based Crime Policy, George Mason University",
+    "country": "United States",
+    "coverage": [
+      "International",
+      "United States",
+      "United Kingdom"
+    ],
+    "types": [
+      "Academic",
+      "Research collection"
+    ],
+    "content": [
+      "Original research",
+      "Research summaries"
+    ],
+    "methods": [
+      "Randomised controlled trials",
+      "Quasi-experimental"
+    ],
+    "topics": [
+      "Crime prevention",
+      "Neighbourhood policing"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Free",
+    "url": "https://cebcp.org/evidence-based-policing/the-matrix/",
+    "about": "A searchable collection of police intervention evaluations, organised by target, prevention approach and focus, with study summaries and links to original research.",
+    "colour": "#00376b",
+    "searchTerms": [
+      "hot spots",
+      "hotspot",
+      "crime reduction",
+      "matrix",
+      "experimental"
+    ],
+    "signals": {
+      "organisationConfirmed": true
+    },
+    "status": "listed",
+    "provenance": "Editor-added",
+    "checked": "2026-10-14",
+    "social": [],
+    "references": [],
+    "summaryMethod": "AI-drafted from the linked official pages; factual signposting description, not an evidence appraisal.",
+    "verificationUrls": [
+      "https://cebcp.org/evidence-based-policing/the-matrix/"
+    ],
+    "sourcePageChecked": true,
+    "registrantVerified": false,
+    "logo": "/assets/sources/cebcp-matrix-logo.png",
+    "logoUrl": "https://cebcp.org/wp-content/uploads/2024/06/university-horizontal-white.png",
+    "logoAlt": "George Mason University \u2014 Center for Evidence-Based Crime Policy",
+    "brandBackground": "#00376b",
+    "sourceNotes": "Official CEBCP/George Mason logo taken from the Matrix page header, not a separate Matrix trademark. The page says studies through 2022 are included and an update through 2025 is underway. English summaries verified."
+  },
+  {
+    "id": "pop-centre",
+    "name": "Center for Problem-Oriented Policing",
+    "initials": "POP",
+    "owner": "Arizona State University",
+    "country": "United States",
+    "coverage": [
+      "International",
+      "United States",
+      "United Kingdom"
+    ],
+    "types": [
+      "Academic",
+      "Practice collection"
+    ],
+    "content": [
+      "Implementation guides",
+      "Practice examples",
+      "Learning resources"
+    ],
+    "methods": [],
+    "topics": [
+      "Neighbourhood policing",
+      "Crime prevention"
+    ],
+    "languages": [
+      "English",
+      "Indonesian",
+      "Malay",
+      "Bosnian",
+      "Mandarin Chinese",
+      "Czech",
+      "Dutch",
+      "Estonian",
+      "Farsi",
+      "French",
+      "German",
+      "Hebrew",
+      "Italian",
+      "Japanese",
+      "Korean",
+      "Lao",
+      "Latvian",
+      "Mongolian",
+      "Portuguese",
+      "Russian",
+      "Slovenian",
+      "Spanish",
+      "Swedish",
+      "Thai",
+      "Turkish",
+      "Vietnamese"
+    ],
+    "access": "Free",
+    "url": "https://popcenter.asu.edu/",
+    "about": "Guides, tools and case studies for problem-oriented policing, covering specific crime problems, local analysis, practical responses and examples of implementation.",
+    "colour": "#8c1d40",
+    "searchTerms": [
+      "SARA",
+      "problem solving",
+      "ASB",
+      "antisocial behaviour",
+      "Goldstein",
+      "Tilley",
+      "operational"
+    ],
+    "signals": {
+      "organisationConfirmed": true
+    },
+    "status": "listed",
+    "provenance": "Editor-added",
+    "checked": "2026-10-14",
+    "social": [],
+    "references": [],
+    "summaryMethod": "AI-drafted from the linked official pages; factual signposting description, not an evidence appraisal.",
+    "verificationUrls": [
+      "https://popcenter.asu.edu/",
+      "https://popcenter.asu.edu/content/translations"
+    ],
+    "sourcePageChecked": true,
+    "registrantVerified": false,
+    "logo": "/assets/sources/pop-centre-logo.png",
+    "logoUrl": "https://popcenter.asu.edu/profiles/contrib/webspark/modules/asu_brand/dist/assets/img/arizona-state-university-logo-vertical.png",
+    "logoAlt": "Arizona State University",
+    "brandBackground": "#ffffff",
+    "sourceNotes": "Uses its parent institution ASU\u2019s official logo, also used by the POP site. Core resources are English; selected publications have the listed translations, including Simplified and Traditional Chinese. This does not imply the complete collection is available in every language."
+  },
+  {
+    "id": "iacp",
+    "name": "IACP Evidence to Action Directory",
+    "initials": "IACP",
+    "owner": "International Association of Chiefs of Police",
+    "country": "United States",
+    "coverage": [
+      "United States",
+      "International"
+    ],
+    "types": [
+      "Professional society"
+    ],
+    "content": [
+      "Research summaries"
+    ],
+    "methods": [],
+    "topics": [
+      "Leadership",
+      "Police wellbeing",
+      "Neighbourhood policing"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Mixed",
+    "url": "https://www.theiacp.org/iacp-evidence-to-action-directory",
+    "about": "A topic directory of concise research briefs for police leaders and practitioners, covering operational decisions, community relationships, organisational practice and officer wellbeing.",
+    "colour": "#0071ce",
+    "searchTerms": [
+      "leadership",
+      "wellbeing",
+      "body worn video",
+      "procedural justice"
+    ],
+    "signals": {},
+    "status": "listed",
+    "provenance": "Editor-added",
+    "checked": "2026-10-14",
+    "social": [],
+    "references": [],
+    "summaryMethod": "AI-drafted from the linked official pages; factual signposting description, not an evidence appraisal.",
+    "verificationUrls": [
+      "https://www.theiacp.org/iacp-evidence-to-action-directory"
+    ],
+    "sourcePageChecked": true,
+    "registrantVerified": false,
+    "logo": "/assets/sources/iacp-logo.svg",
+    "logoUrl": "https://www.theiacp.org/themes/iacp/logo.svg",
+    "logoAlt": "International Association of Chiefs of Police",
+    "brandBackground": "#132c45",
+    "sourceNotes": "Official IACP logo has white components and needs a dark background. Topic listings are public; the directory displays a sign-in requirement for further member content. English source briefs verified; accessibility/translation widgets are not counted as research languages."
+  },
+  {
+    "id": "ebp-app",
+    "name": "Evidence-Based Policing App \u2014 Resources",
+    "initials": "EBP",
+    "owner": "Police Foundation, with CEBCP and IACP",
+    "country": "United States",
+    "coverage": [
+      "International",
+      "United States",
+      "United Kingdom"
+    ],
+    "types": [
+      "Research collection"
+    ],
+    "content": [
+      "Learning resources",
+      "Research summaries",
+      "Practice examples"
+    ],
+    "methods": [],
+    "topics": [
+      "Crime prevention",
+      "Neighbourhood policing"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Free",
+    "url": "https://www.evidence-basedpolicing.org/evidence-based-policing-resources/",
+    "about": "Links to policing studies, one-page research summaries, learning material and practical strategies, including ideas the publisher identifies as not yet tested.",
+    "colour": "#183d6e",
+    "searchTerms": [
+      "app",
+      "learning",
+      "evidence",
+      "resources"
+    ],
+    "signals": {},
+    "status": "listed",
+    "provenance": "Editor-added",
+    "checked": "2026-10-14",
+    "social": [],
+    "references": [],
+    "summaryMethod": "AI-drafted from the linked official pages; factual signposting description, not an evidence appraisal.",
+    "verificationUrls": [
+      "https://www.evidence-basedpolicing.org/evidence-based-policing-resources/",
+      "https://www.evidence-basedpolicing.org/about/",
+      "https://apps.apple.com/us/app/evidence-based-policing/id1047674581"
+    ],
+    "sourcePageChecked": true,
+    "registrantVerified": false,
+    "logo": "/assets/sources/ebp-app-logo.jpg",
+    "logoUrl": "https://is1-ssl.mzstatic.com/image/thumb/Purple62/v4/a3/f3/8f/a3f38fca-9101-c701-6708-aeb50e2162a7/mzm.iaicfism.png/400x400ia-75.jpg",
+    "logoAlt": "Evidence-Based Policing App",
+    "brandBackground": "#ffffff",
+    "sourceNotes": "Official publisher-supplied app icon from Apple App Store listing, publisher The Police Foundation; this identifies the same app described on its own About page. The website itself uses a text title and low-resolution partner logos. The About page identifies Police Foundation as creator in partnership with CEBCP and coordination with IACP."
+  },
+  {
+    "id": "nij-crimesolutions",
+    "name": "CrimeSolutions",
+    "initials": "NIJ",
+    "owner": "National Institute of Justice",
+    "country": "United States",
+    "coverage": [
+      "International",
+      "United States"
+    ],
+    "types": [
+      "Official",
+      "Research collection"
+    ],
+    "content": [
+      "Evidence reviews",
+      "Research summaries"
+    ],
+    "methods": [
+      "Randomised controlled trials",
+      "Quasi-experimental",
+      "Systematic reviews"
+    ],
+    "topics": [
+      "Crime prevention",
+      "Neighbourhood policing",
+      "Violence prevention",
+      "Safeguarding"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Free",
+    "url": "https://crimesolutions.ojp.gov/",
+    "about": "A collection of evidence reviews and programme profiles covering policing and criminal justice. The publisher states that the website is no longer updated.",
+    "colour": "#0e3c5d",
+    "searchTerms": [
+      "crime solutions",
+      "NIJ",
+      "what works",
+      "interventions",
+      "evaluation",
+      "archive"
+    ],
+    "signals": {
+      "organisationConfirmed": true
+    },
+    "status": "listed",
+    "provenance": "Editor-added",
+    "checked": "2026-10-14",
+    "social": [],
+    "references": [],
+    "logo": "/assets/sources/nij-crimesolutions-logo.svg",
+    "logoUrl": "https://crimesolutions.ojp.gov/sites/crimesltns/files/crime_solutions_wout_seal_reversed-01b.svg?v=1",
+    "logoAlt": "National Institute of Justice \u2014 CrimeSolutions",
+    "brandBackground": "#0e3c5d",
+    "sourceStatus": "Archive \u2014 no longer updated",
+    "verificationUrls": [
+      "https://crimesolutions.ojp.gov/"
+    ],
+    "sourcePageChecked": true,
+    "registrantVerified": false,
+    "summaryMethod": "AI-drafted from the linked official page; factual signposting description, not an evidence appraisal.",
+    "sourceNotes": "Official homepage notice says the page is no longer being updated and may contain outdated information or links. Keep that limitation visible, including in the brief summary. White official logo requires a dark background."
+  },
+  {
+    "id": "campbell",
+    "name": "Campbell Crime and Justice",
+    "initials": "C",
+    "owner": "Campbell Collaboration",
+    "country": "United States",
+    "coverage": [
+      "International"
+    ],
+    "types": [
+      "Charity",
+      "Research collection"
+    ],
+    "content": [
+      "Evidence reviews",
+      "Research summaries"
+    ],
+    "methods": [
+      "Systematic reviews"
+    ],
+    "topics": [
+      "Crime prevention",
+      "Investigations",
+      "Violence prevention",
+      "Safeguarding"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Free",
+    "url": "https://www.campbellcollaboration.org/crime/",
+    "about": "An international collection of systematic reviews examining crime prevention and justice interventions, including policing, with links to published reviews and research teams.",
+    "colour": "#406aa0",
+    "searchTerms": [
+      "systematic review",
+      "meta-analysis",
+      "crime justice",
+      "evidence synthesis",
+      "Campbell"
+    ],
+    "signals": {},
+    "status": "listed",
+    "provenance": "Editor-added",
+    "checked": "2026-10-14",
+    "social": [],
+    "references": [],
+    "logo": "/assets/sources/campbell-logo.svg",
+    "logoUrl": "https://www.campbellcollaboration.org/wp-content/uploads/2024/05/campbell_logo.svg",
+    "logoAlt": "Campbell Collaboration",
+    "brandBackground": "#ffffff",
+    "verificationUrls": [
+      "https://www.campbellcollaboration.org/crime/",
+      "https://www.campbellcollaboration.org/crime/reviews/",
+      "https://www.campbellcollaboration.org/about/governance/",
+      "https://www.campbellcollaboration.org/wp-content/uploads/2025/07/Campbell-Collaboration-990-PIC-2023-1.pdf"
+    ],
+    "sourcePageChecked": true,
+    "registrantVerified": false,
+    "summaryMethod": "AI-drafted from the linked official pages; factual signposting description, not an evidence appraisal.",
+    "sourceNotes": "US organisation domicile is supported by the latest IRS Form 990 linked from Campbell\u2019s governance page (2023 filing, Pennsylvania address). Its research network and coverage are international. English crime-and-justice reviews verified; translations elsewhere in the wider organisation were not assumed for this particular collection."
+  }
+]

@@ -1,0 +1,109 @@
+.audit-summary-label{display:block;color:#56616d;font-size:10px;line-height:1.5;font-weight:600;letter-spacing:.01em;margin:-7px 0 13px}
+.profile-section>.audit-summary-label{margin:0 0 10px;font-size:12px}
+.source-contact-links{display:flex;flex-wrap:wrap;gap:10px 22px;margin:0 0 16px}
+.source-contact-links a,.source-public-contact .check-links a{overflow-wrap:anywhere}
+.source-contact-links a{text-decoration:underline;text-underline-offset:3px}
+.source-portrait{margin:0 0 20px;max-width:180px}
+.source-portrait img{width:160px;height:160px;border-radius:4px;object-fit:cover;object-position:center 25%;background:#f0f2f4}
+.source-portrait figcaption{font-size:11px;line-height:1.5;margin-top:7px}
+.source-link-audit{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:18px 0}
+.audit-status{display:inline-flex;border:1px solid #b8c9d9;background:#f1f5f9;color:#254b70;border-radius:3px;padding:3px 9px;font-size:11px;font-weight:600}
+.audit-status-restricted,.audit-status-unreachable,.audit-status-not-found{background:#fff7e2;border-color:#decc9c;color:#67501f}
+.audit-check-detail{flex:1 0 100%;font-size:12px;color:#56616d}
+.audit-check-detail summary{cursor:pointer}
+.audit-check-detail p{margin:10px 0;max-width:75ch}
+.source-correction{border-top:1px solid #dbe0e5;margin:0;padding:18px 0 22px;font-size:12px;color:#56616d;line-height:1.7}
+.source-correction a{font-weight:600;overflow-wrap:anywhere}
+.contact-name{font-weight:600;margin-bottom:12px}
+@media(max-width:760px){.source-contact-links{flex-direction:column;gap:12px}.source-portrait img{width:140px;height:140px}.source-correction{font-size:12px}.source-link-audit{align-items:flex-start;flex-direction:column}}
+.source-review-notes{padding-left:20px;font-size:13px;color:#56616d}.source-review-notes li{margin:8px 0}
+
+/* Source profiles share the directory's neutral bands, borders and restrained accents. */
+.source-profile{background:#f5f4f2;padding-bottom:1px}
+.source-profile .profile-banner{position:relative;isolation:isolate;background:#eae7e2;border-top:3px solid var(--copper);border-bottom:1px solid #ccc7c0;padding:24px 0 32px}
+.source-profile .profile-banner:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#eeece8 20%,#eeece8c9),url('/assets/community/library.webp') center 45%/cover;opacity:.8}
+.source-profile .breadcrumb{font-size:12px;overflow-wrap:anywhere}
+.source-profile .profile-heading{grid-template-columns:150px minmax(0,1fr);gap:26px;margin-top:22px}
+.source-profile .profile-brand{background:#fff;border:1px solid #d1cbc3;border-top:3px solid var(--blue);border-radius:3px;min-height:110px}
+.source-profile .profile-heading h1{font-size:clamp(25px,3vw,38px);letter-spacing:-.025em}
+.source-profile .profile-heading .eyebrow{color:#575b64}
+.source-profile .profile-layout{background:transparent;grid-template-columns:minmax(0,1fr) 320px;gap:28px;padding-top:28px;padding-bottom:16px;align-items:start}
+.profile-main{min-width:0}
+.source-profile .profile-main>.notice{background:#e9edf1;border:1px solid #c9d0d8;margin-bottom:20px;font-size:12px;padding:14px 18px}
+.source-profile .profile-main>.profile-section,.source-profile .profile-facts{margin:0 0 22px;padding:26px 28px;border:1px solid #d6d1ca;border-radius:3px;background:#fff}
+.source-profile .profile-main>.profile-section:first-of-type{background:#eeece7;border-left:4px solid var(--copper)}
+.source-profile .profile-section h2,.source-profile .profile-facts h2{font-size:22px;margin-bottom:16px;letter-spacing:-.02em}
+.source-profile .profile-section h3{font-size:14px}
+.source-profile .profile-section .body-large{font-size:17px;line-height:1.85;max-width:70ch;margin-bottom:18px}
+.source-profile .profile-section p:last-child{margin-bottom:0}
+.source-profile .profile-section:has(>.member-contribution){background:#edf0f3;border-top:3px solid #536882;padding:0}
+.source-profile .member-contribution{border:0;border-radius:0;background:transparent;margin:0;padding:24px 28px}
+.source-profile .profile-section:has(>.large-tags){background:#f0eee9;border-left:4px solid #7d8171}
+.source-profile .tag{border:1px solid #c9c5be;background:#fff;color:#343b46;border-radius:3px;padding:5px 9px}
+.source-profile .large-tags .tag{font-size:12px}
+.source-profile .profile-facts{background:#eae7e2}
+.source-profile .profile-facts dl{display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px 20px;margin:18px 0}
+.source-profile .profile-facts dt,.source-profile .profile-facts dd{margin:0;min-width:0}
+.source-profile .profile-facts dd{overflow-wrap:anywhere}
+.source-profile .profile-facts .language-scope{margin-bottom:0}
+.profile-contact-panel{min-width:0}
+.profile-contact-box{background:#e9e6e0;border:1px solid #c9c3ba;border-top:4px solid var(--copper);padding:24px;border-radius:3px;box-shadow:0 3px 10px #26282d08}
+.profile-contact-box .source-public-contact{border:0;margin:0;padding:0}
+.profile-contact-box .source-public-contact h2{font-size:20px;padding-bottom:16px;border-bottom:1px solid #c9c3ba;margin-bottom:20px}
+.profile-contact-box .source-portrait{max-width:none;margin:0 0 18px}
+.profile-contact-box .source-portrait img{width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:3px;background:#d7d2cb}
+.profile-contact-box .source-portrait figcaption{font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.profile-contact-box .contact-name{font-size:15px}
+.profile-contact-box .source-contact-links{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+.profile-contact-box .source-contact-links a{display:block;padding:10px 12px;border:1px solid #cbc6bd;background:#f8f7f4;font-size:12px;line-height:1.5;text-decoration:none;border-radius:3px;min-height:42px}
+.profile-contact-box .source-contact-links a:hover{background:#fff;border-color:#7b8490;text-decoration:underline}
+.profile-contact-box .source-contact-links .contact-website{background:var(--blue);border-color:var(--blue);color:#fff;font-size:13px;font-weight:600}
+.profile-contact-box .source-contact-links .contact-website:hover{background:#20242b;color:#fff}
+.profile-contact-box .source-contact-links .contact-social:after{content:' ↗';float:right;padding-left:8px}
+.profile-contact-box .check-links{font-size:11px;margin:0}
+.profile-contact-box .check-links ul{padding-left:16px}
+.profile-contact-box .profile-tools{border-top:1px solid #c9c3ba;margin-top:20px;padding-top:18px}
+.profile-contact-box .profile-tools .button{width:100%;font-size:12px;background:#f8f7f4}
+.source-profile .related{background:#eae7e2;border-block:1px solid #d1cbc3;padding-top:28px;padding-bottom:28px;margin-bottom:32px}
+.source-profile .related>.source-row{background:#fff;border:1px solid #d6d1ca;border-radius:3px;margin-bottom:12px;padding:20px}
+/* Keep bio photographs in the visible source body on home, search and related cards. */
+.source-row .source-card-portrait{float:right;width:76px;max-width:38%;margin:0 0 10px 12px}
+.source-row .source-card-portrait img{width:76px;height:86px;object-fit:cover;border-radius:3px;object-position:center 25%}
+.source-row .source-card-portrait figcaption{font-size:8px;line-height:1.35;margin-top:4px}
+.source-row .source-card-portrait a{display:inline-block;overflow-wrap:anywhere;color:#575b64}
+.source-row .source-card-portrait~.source-meta{display:block;line-height:1.65}
+.source-row .source-card-portrait~.source-meta>span{display:block}
+.source-row .source-card-portrait~.tags{clear:both}
+.source-row .source-card-portrait~h3{overflow-wrap:anywhere}
+@media(min-width:1000px){.profile-contact-panel{position:sticky;top:24px}}
+@media(max-width:1000px) and (min-width:761px){.source-profile .profile-layout{grid-template-columns:minmax(0,1fr) 275px;gap:20px}.profile-contact-box{padding:20px}.source-profile .profile-main>.profile-section{padding:22px}.source-profile .member-contribution{padding:22px}}
+@media(max-width:760px){
+ .source-profile .profile-banner{padding:18px 0 24px}
+ .source-profile .profile-heading{display:grid;grid-template-columns:95px minmax(0,1fr);gap:16px;align-items:center;margin-top:18px}
+ .source-profile .profile-brand{width:95px;min-height:85px;padding:10px}
+ .source-profile .profile-heading h1{font-size:24px;overflow-wrap:anywhere;margin-bottom:10px}
+ .source-profile .profile-heading .eyebrow{font-size:8px}
+ .source-profile .profile-heading p:not(.eyebrow){font-size:11px}
+ .source-profile .profile-layout{display:flex;flex-direction:column;gap:0;padding-top:20px}
+ .profile-main{display:contents}
+ .profile-main>.notice{order:0;width:100%}
+ .profile-main>.profile-section:first-of-type{order:1;width:100%}
+ .source-profile .profile-contact-panel{display:block;order:2;width:100%;margin:0 0 22px}
+ .profile-main>.profile-section:not(:first-of-type),.profile-main>.profile-facts{order:3;width:100%}
+ .source-profile .profile-main>.profile-section,.source-profile .profile-facts{padding:22px 20px}
+ .source-profile .profile-section:has(>.member-contribution){padding:0}
+ .source-profile .member-contribution{padding:22px 20px}
+ .source-profile .profile-section .body-large{font-size:15px;line-height:1.8}
+ .profile-contact-box{padding:22px 20px}
+ .profile-contact-box .source-portrait{float:right;width:110px;margin:0 0 16px 16px}
+ .profile-contact-box .source-contact-links{display:block}
+ .profile-contact-box .source-contact-links a{margin-bottom:8px;overflow:hidden}
+ .profile-contact-box .profile-tools,.profile-contact-box .check-links{clear:both}
+ .source-profile .profile-facts dl{grid-template-columns:95px minmax(0,1fr);gap:10px 14px}
+ .source-profile .related>.source-row{padding:16px}
+ .source-profile .related .source-brand{max-width:100%}
+ .source-row .source-card-portrait{width:70px}
+ .source-row .source-card-portrait img{width:70px;height:80px}
+}
+@media(max-width:370px){.source-profile .profile-heading{grid-template-columns:1fr}.source-profile .profile-brand{width:125px}.profile-contact-box .source-portrait{float:none;width:150px;margin:0 0 18px}}
+@media print{.source-profile,.source-profile .profile-layout,.source-profile .profile-banner,.profile-contact-box{background:white}.source-profile .profile-banner:before{display:none}.source-profile .profile-layout{display:block}.profile-contact-panel{position:static}.profile-contact-box{break-inside:avoid}.source-profile .profile-main>.profile-section{break-inside:avoid}.source-row .source-card-portrait{max-width:76px}}

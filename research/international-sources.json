@@ -1,0 +1,419 @@
+[
+  {
+    "id": "can-sebp",
+    "name": "Canadian Society of Evidence-Based Policing",
+    "initials": "CAN",
+    "owner": "Canadian Society of Evidence-Based Policing",
+    "country": "Canada",
+    "coverage": [
+      "Canada",
+      "International"
+    ],
+    "types": [
+      "EBP society",
+      "Professional society"
+    ],
+    "content": [
+      "Research summaries",
+      "Learning resources"
+    ],
+    "methods": [],
+    "topics": [
+      "Leadership",
+      "Crime prevention",
+      "Neighbourhood policing",
+      "Police wellbeing"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Mixed",
+    "url": "https://www.can-sebp.net/",
+    "about": "A Canadian practitioner and researcher network offering evidence briefs, introductory learning resources and events to support research-informed policing.",
+    "colour": "#385D94",
+    "searchTerms": [
+      "society",
+      "Canadian",
+      "Canada",
+      "EBP",
+      "evidence briefs",
+      "crisis response"
+    ],
+    "signals": {},
+    "social": [
+      "https://linkedin.com/company/canadiansocietyofevidence-basedpolicing"
+    ],
+    "logo": "/assets/sources/can-sebp-logo.png",
+    "logoSource": "https://static.wixstatic.com/media/7bdff4_76f4b1f2853a4241864d817f9e690998~mv2.png",
+    "logoBackground": "#FFFFFF",
+    "verificationUrls": [
+      "https://www.can-sebp.net/",
+      "https://www.can-sebp.net/resource-hub",
+      "https://www.can-sebp.net/ebp-evidence-briefs"
+    ],
+    "languageNotes": "English resource pages and evidence-brief introductions inspected; French research-content availability was not established.",
+    "assetNotes": "Official masthead logo, unmodified transparent PNG, 1230 × 750. Site CSS uses #385D94. Public display identifies the source; no affiliation or endorsement is claimed.",
+    "checked": "2026-10-14",
+    "status": "listed",
+    "provenance": "Editor-added",
+    "descriptionLanguage": "en",
+    "summaryMethod": "AI-generated from the linked official source pages; factual description only",
+    "summaryGeneratedAt": "2026-10-14",
+    "references": [],
+    "orientation": [
+      "Operational practice",
+      "Education and training"
+    ],
+    "summaryWordCount": 18
+  },
+  {
+    "id": "cepol",
+    "name": "CEPOL — Scientific knowledge and research",
+    "initials": "CEPOL",
+    "owner": "European Union Agency for Law Enforcement Training",
+    "country": "Hungary",
+    "coverage": [
+      "Europe",
+      "International"
+    ],
+    "types": [
+      "Official",
+      "Learning provider"
+    ],
+    "content": [
+      "Learning resources",
+      "Original research",
+      "Research summaries"
+    ],
+    "methods": [],
+    "topics": [
+      "Investigations",
+      "Leadership",
+      "Technology"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Mixed",
+    "url": "https://www.cepol.europa.eu/scientific-knowledge-and-research/scientific-resources-and-projects",
+    "about": "European law enforcement research publications, scientific resources and training materials, including the European Law Enforcement Research Bulletin and conference outputs.",
+    "colour": "#23588A",
+    "searchTerms": [
+      "European",
+      "Europe",
+      "training",
+      "learning",
+      "EU",
+      "CEPOL",
+      "research bulletin"
+    ],
+    "signals": {
+      "organisationConfirmed": true
+    },
+    "social": [],
+    "logo": null,
+    "logoSource": "https://www.cepol.europa.eu/logo.svg",
+    "logoBackground": "#FFFFFF",
+    "verificationUrls": [
+      "https://www.cepol.europa.eu/scientific-knowledge-and-research/scientific-resources-and-projects",
+      "https://www.cepol.europa.eu/scientific-knowledge-and-research/european-law-enforcement-research-bulletin",
+      "https://www.cepol.europa.eu/publications",
+      "https://www.cepol.europa.eu/newsroom/corporate-identity"
+    ],
+    "languageNotes": "English research pages inspected. Multilingual navigation alone is not evidence that the research publications are available in those languages.",
+    "assetNotes": "Do not publish the CEPOL logo: the official corporate-identity page explicitly requires prior written authorisation for third-party use. Public asset omitted. Use plain source name on neutral directory styling; selected colour is directory blue, not an asserted CEPOL brand colour.",
+    "logoPermission": "Prior written authorisation required",
+    "logoPermissionUrl": "https://www.cepol.europa.eu/newsroom/corporate-identity",
+    "checked": "2026-10-14",
+    "status": "listed",
+    "provenance": "Editor-added",
+    "descriptionLanguage": "en",
+    "summaryMethod": "AI-generated from the linked official source pages; factual description only",
+    "summaryGeneratedAt": "2026-10-14",
+    "references": [],
+    "orientation": [
+      "Operational practice",
+      "Education and training"
+    ],
+    "summaryWordCount": 20
+  },
+  {
+    "id": "anzsebp",
+    "name": "Australia & New Zealand Society of Evidence Based Policing",
+    "initials": "ANZSEBP",
+    "owner": "Australia & New Zealand Society of Evidence Based Policing",
+    "country": "Australia",
+    "coverage": [
+      "Australia",
+      "New Zealand",
+      "International"
+    ],
+    "types": [
+      "EBP society",
+      "Professional society"
+    ],
+    "content": [
+      "Research summaries",
+      "Learning resources",
+      "Practice examples"
+    ],
+    "methods": [],
+    "topics": [
+      "Crime prevention",
+      "Leadership",
+      "Investigations"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Mixed",
+    "url": "https://www.anzsebp.com/",
+    "about": "A practitioner-led society sharing Police Science journal editions, research resources and professional events for evidence-based policing in Australia and New Zealand.",
+    "colour": "#314A88",
+    "searchTerms": [
+      "society",
+      "Australia",
+      "New Zealand",
+      "ANZ",
+      "Police Science",
+      "EBP"
+    ],
+    "signals": {},
+    "social": [],
+    "logo": "/assets/sources/anzsebp-logo.png",
+    "logoSource": "https://www.anzsebp.com/wp-content/uploads/2019/09/ANZ-Inc-Logo-Wht.png",
+    "logoBackground": "#12184B",
+    "verificationUrls": [
+      "https://www.anzsebp.com/",
+      "https://www.anzsebp.com/about-us/",
+      "https://www.anzsebp.com/police-science/",
+      "https://www.anzsebp.com/membership/"
+    ],
+    "languageNotes": "English journal archive and resource pages inspected. No Māori-language research catalogue established.",
+    "assetNotes": "Official white transparent logo, unmodified PNG, 1102 × 469. Must be placed on a dark navy logo surface to remain visible. Colours #314A88 and #12184B appear in official website CSS. Journal archive currently lists editions through 2024; do not imply all current research is indexed.",
+    "checked": "2026-10-14",
+    "status": "listed",
+    "provenance": "Editor-added",
+    "descriptionLanguage": "en",
+    "summaryMethod": "AI-generated from the linked official source pages; factual description only",
+    "summaryGeneratedAt": "2026-10-14",
+    "references": [],
+    "orientation": [
+      "Operational practice",
+      "Education and training"
+    ],
+    "summaryWordCount": 21
+  },
+  {
+    "id": "asebp",
+    "name": "American Society of Evidence-Based Policing",
+    "initials": "ASEBP",
+    "owner": "American Society of Evidence-Based Policing",
+    "country": "United States",
+    "coverage": [
+      "United States",
+      "International"
+    ],
+    "types": [
+      "EBP society",
+      "Professional society"
+    ],
+    "content": [
+      "Research summaries",
+      "Learning resources"
+    ],
+    "methods": [],
+    "topics": [
+      "Crime prevention",
+      "Leadership",
+      "Technology",
+      "Neighbourhood policing"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Mixed",
+    "url": "https://americansebp.org/",
+    "about": "A professional society connecting policing practitioners and researchers through research briefs, learning opportunities and conferences focused on applying evidence in police practice.",
+    "colour": "#006B8F",
+    "searchTerms": [
+      "society",
+      "American",
+      "United States",
+      "ASEBP",
+      "research briefs",
+      "EBP"
+    ],
+    "signals": {},
+    "social": [
+      "https://www.linkedin.com/company/american-society-of-evidence-based-policing",
+      "https://www.facebook.com/AmericanSEBP/",
+      "https://twitter.com/EBpolicing"
+    ],
+    "logo": "/assets/sources/asebp-logo.webp",
+    "logoSource": "https://d21hwc2yj2s6ok.cloudfront.net/shrine_store/uploads/networks/3124/networks/3124/large-b535ddb900ccead14c71bc50c2e6b6e3.webp",
+    "logoBackground": "#FFFFFF",
+    "verificationUrls": [
+      "https://americansebp.org/",
+      "https://americansebp.org/page/publicly-available-research",
+      "https://americansebp.org/page/about-asebp",
+      "https://americansebp.org/page/annual-conference"
+    ],
+    "languageNotes": "English homepage and public research-brief page verified; no other publication languages established.",
+    "assetNotes": "Official footer lock-up, unmodified WebP, 800 × 193. The header image has excessive internal transparent whitespace, so the compact footer lock-up is used. Brand colour #006B8F appears in official site CSS. Some research is members-only; full archive was not inspected.",
+    "checked": "2026-10-14",
+    "status": "listed",
+    "provenance": "Editor-added",
+    "descriptionLanguage": "en",
+    "summaryMethod": "AI-generated from the linked official source pages; factual description only",
+    "summaryGeneratedAt": "2026-10-14",
+    "references": [],
+    "orientation": [
+      "Operational practice",
+      "Education and training"
+    ],
+    "summaryWordCount": 22
+  },
+  {
+    "id": "sebp-nl",
+    "name": "Society of Evidence-based Policing Nederland",
+    "initials": "SEBP-NL",
+    "owner": "Society of Evidence-based Policing Nederland",
+    "country": "Netherlands",
+    "coverage": [
+      "Netherlands",
+      "International"
+    ],
+    "types": [
+      "EBP society",
+      "Professional society"
+    ],
+    "content": [
+      "Research summaries",
+      "Learning resources",
+      "Commentary"
+    ],
+    "methods": [],
+    "topics": [
+      "Crime prevention",
+      "Neighbourhood policing",
+      "Leadership"
+    ],
+    "languages": [
+      "Dutch"
+    ],
+    "access": "Free",
+    "url": "https://sebp.nl/",
+    "about": "A Dutch policing society sharing research signposts, learning materials, recorded discussions and events to encourage the use of evidence in everyday policing.",
+    "colour": "#ED1C24",
+    "searchTerms": [
+      "society",
+      "Netherlands",
+      "Nederland",
+      "Dutch",
+      "Nederlands",
+      "SEBP NL",
+      "kennisparels"
+    ],
+    "signals": {},
+    "social": [
+      "https://www.linkedin.com/company/society-of-evidence-based-policing-nederland/",
+      "https://twitter.com/SEBP_Nederland"
+    ],
+    "logo": "/assets/sources/sebp-nl-logo.png",
+    "logoSource": "https://sebp.nl/wp-content/uploads/2023/06/SEBP-NL.png",
+    "logoBackground": "#FFFFFF",
+    "verificationUrls": [
+      "https://sebp.nl/",
+      "https://sebp.nl/society/",
+      "https://sebp.nl/evidence-based-policing/kennisparels/",
+      "https://sebp.nl/actueel/"
+    ],
+    "languageNotes": "Dutch research signposts and learning pages inspected. Linked external English interviews do not establish an English research collection on this site.",
+    "assetNotes": "Official red wordmark, unmodified transparent PNG, 224 × 52. Display at no more than 112 CSS pixels wide for a sharp 2× presentation. Higher resolution original was not found. Colour is a close visual companion to the mark, not an official brand specification.",
+    "checked": "2026-10-14",
+    "status": "listed",
+    "provenance": "Editor-added",
+    "descriptionLanguage": "en",
+    "summaryMethod": "AI-generated from the linked official source pages; factual description only",
+    "summaryGeneratedAt": "2026-10-14",
+    "references": [],
+    "orientation": [
+      "Operational practice",
+      "Education and training"
+    ],
+    "summaryWordCount": 22
+  },
+  {
+    "id": "nz-ebpc",
+    "name": "New Zealand Evidence-Based Policing Centre",
+    "initials": "EBPC",
+    "owner": "New Zealand Police",
+    "country": "New Zealand",
+    "coverage": [
+      "New Zealand",
+      "International"
+    ],
+    "types": [
+      "Official",
+      "Research collection"
+    ],
+    "content": [
+      "Original research",
+      "Evidence reviews",
+      "Research summaries"
+    ],
+    "methods": [],
+    "topics": [
+      "Crime prevention",
+      "Investigations",
+      "Leadership",
+      "Safeguarding"
+    ],
+    "languages": [
+      "English"
+    ],
+    "access": "Free",
+    "url": "https://www.police.govt.nz/about-us/programmes-and-initiatives/evidence-based-policing",
+    "about": "New Zealand Police’s research centre provides evaluation reports, evidence reviews, project updates and information for researchers seeking to collaborate with police.",
+    "colour": "#00164B",
+    "searchTerms": [
+      "New Zealand",
+      "NZ",
+      "EBPC",
+      "evaluation",
+      "Te Pae Oranga",
+      "tactical response",
+      "custody"
+    ],
+    "signals": {
+      "organisationConfirmed": true
+    },
+    "social": [
+      "https://www.linkedin.com/company/nz-police/",
+      "https://www.youtube.com/c/newzealandpolice"
+    ],
+    "logo": "/assets/sources/nz-ebpc-logo.png",
+    "logoSource": "https://www.police.govt.nz/sites/default/files/about-us/programmes-initiatives/ebpc-logo-horizontal.png",
+    "logoBackground": "#FFFFFF",
+    "verificationUrls": [
+      "https://www.police.govt.nz/about-us/programmes-and-initiatives/evidence-based-policing",
+      "https://www.police.govt.nz/about-us/programmes-and-initiatives/evidence-based-policing-ebp/about-ebpc",
+      "https://www.police.govt.nz/about-us/programmes-and-initiatives/evidence-based-policing-ebp/news-ebpc"
+    ],
+    "languageNotes": "English research pages and linked evaluation descriptions inspected. Māori programme names do not by themselves establish Māori-language publications.",
+    "assetNotes": "Official EBPC wordmark from its New Zealand Police page, unmodified transparent PNG, 640 × 141. Uses the research-centre identity rather than the Police crest. #00164B is present in official page styling. Social accounts belong to the parent police organisation, not a separate centre account.",
+    "checked": "2026-10-14",
+    "status": "listed",
+    "provenance": "Editor-added",
+    "descriptionLanguage": "en",
+    "summaryMethod": "AI-generated from the linked official source pages; factual description only",
+    "summaryGeneratedAt": "2026-10-14",
+    "references": [],
+    "orientation": [
+      "Academic research",
+      "Operational practice"
+    ],
+    "summaryWordCount": 21
+  }
+]

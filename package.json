@@ -1,0 +1,20 @@
+{
+  "name": "international-ebp-directory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "International Directory of Evidence-Based Policing — independent source discovery",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs tests/database/*.test.mjs",
+    "test:database": "node --test tests/database/*.test.mjs",
+    "db:seed": "node scripts/build-seed.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10"
+  }
+}
