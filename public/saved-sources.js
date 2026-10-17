@@ -29,7 +29,12 @@ export class SavedSources {
     this.pending.set(slug,saved);this.pendingDurable=this.write(this.pendingKey(),[...this.pending]);this.status='syncing';this.notify();return this.sync();
   }
   sync(){
-    if(!this.userId)return Promise.resolve();
+    if(!this.userId){
+      // Another tab can change the device collection without changing accounts.
+      // Preserve memory-only edits if browser storage is unavailable.
+      if(this.status!=='storage-error'){this.ids=new Set(this.readGuest());this.notify();}
+      return Promise.resolve();
+    }
     if(this.running)return this.running;
     const generation=this.generation,accountId=this.userId,live=()=>generation===this.generation;
     const request=(path,options={})=>this.request(path,{...options,accountId});

@@ -22,6 +22,10 @@ npm test
 
 The build creates a self-contained Cloudflare Worker. Public files contain no service keys or account tokens. Browser sessions use encrypted, HttpOnly cookies.
 
+## Code review and release checks
+
+The [17 October code/security review](docs/audits/2026-10-17-code-review.md) records the tested fixes, ratings and concurrency limitations. The [hosting audit](docs/audits/2026-10-17-hosting.md) records live configuration and the coordinated deployment runbook. GitHub Actions runs the build and tests on Node 22 and 24; this does not deploy the site. Database migrations, the Edge Function and the Worker must be released together after acceptance checks.
+
 ## Project guide
 
 | Location | Purpose |
@@ -67,7 +71,7 @@ Owners and invited editors propose profile changes, including public contact/soc
 
 Administrators can hide/restore sources, reverse duplicate decisions, replace ownership after independent checks, and reinstate members. Duplicate handling redirects the hidden listing and adds the retained source to saved collections; ratings and source roles stay separate. Every decision retains audit history.
 
-Cloudflare runs a small maintenance batch every 30 minutes; each published source is checked weekly and after addition or website changes. Descriptions, published contacts, logo candidates and same-domain duplicates are suggestions for review, never automatic ownership evidence. The same job sends new claim receipts/decisions and editor invitations using a leased outbox. Uncertain deliveries are held to avoid duplicate mail. No historical invitations or bulk source outreach are sent.
+Cloudflare checks the notification queue every five minutes and runs source maintenance every 30 minutes; each published source is checked weekly and after addition or website changes. Descriptions, published contacts, logo candidates and same-domain duplicates are suggestions for review, never automatic ownership evidence. Claim receipts/decisions and editor invitations use a leased outbox. Rolling 24-hour budgets reserve up to 150 code emails and 50 workflow notices within the observed account allowance of 200. Uncertain deliveries are held to avoid duplicate mail. No historical invitations or bulk source outreach are sent.
 
 The single completion checklist is https://chatgpt.com/space/page_ff709a1995908191a3d2dfcc18660533. Google reporting/search setup and full real-email mobile acceptance remain separately recorded there.
 

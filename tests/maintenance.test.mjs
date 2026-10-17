@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {publicWebUrl,inspectSource,runDirectoryTasks} from '../backend/maintenance.mjs';
 test('source checks reject private URLs and recheck redirects before fetching',async()=>{
- for(const url of ['http://public.org','https://127.0.0.1','https://user:pass@public.org','https://intranet.local/path','https://[::1]','https://2130706433','https://0x7f000001','https://public.org:444'])assert.equal(publicWebUrl(url),null,url);
+ for(const url of ['http://public.org','https://127.0.0.1','https://user:pass@public.org','https://intranet.local/path','https://localhost./','https://intranet.local./','https://metadata.google.internal./','https://[::1]','https://2130706433','https://0x7f000001','https://public.org:444'])assert.equal(publicWebUrl(url),null,url);
  const seen=[];const result=await inspectSource({url:'https://public.org',about:'A summary'}, {fetcher:async url=>{seen.push(url);return new Response(null,{status:302,headers:{Location:'https://127.0.0.1/private'}});}});assert.equal(result.status,'unreachable');assert.equal(seen.length,1);
 });
 test('maintenance extracts published suggestions without inventing contacts or changing a profile',async()=>{

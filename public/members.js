@@ -175,30 +175,53 @@ export function getContributionSummary(sourceId) {
 }
 export function isMemberPath(path) { return ['/login','/register','/reset-password','/account','/members','/source-workspace','/source-preview','/admin','/admin-preview'].includes(path); }
 
-export async function accountApi(path,{method='GET',body,accountId}={}) {
+export async function accountApi(path,{method='GET',body,accountId,timeoutMs=50000}={}) {
+  const requestedRevision=sessionRevision;
   const headers = {'Accept':'application/json'};
   if(accountId)headers['X-IDEBP-Account']=accountId;
   if (body !== undefined) headers['Content-Type']='application/json';
   if (method !== 'GET' && state.session.csrfToken) headers['X-CSRF-Token']=state.session.csrfToken;
-  const response = await fetch(`/api${path}`,{method,headers,credentials:'same-origin',cache:'no-store',...(body !== undefined?{body:JSON.stringify(body)}:{})});
-  const type=response.headers.get('Content-Type') || '';
-  const data=type.includes('application/json') ? await response.json() : {};
-  if (!response.ok) { const error=new Error(data.error?.code || (response.status===404?'unavailable':'request_failed')); error.code=data.error?.code; error.status=response.status; throw error; }
-  return data;
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(Object.assign(new Error('request_timeout'),{code:'request_timeout'})),timeoutMs);
+  try {
+    const response = await fetch(`/api${path}`,{method,headers,credentials:'same-origin',cache:'no-store',signal:controller.signal,...(body !== undefined?{body:JSON.stringify(body)}:{})});
+    const type=response.headers.get('Content-Type') || '';
+    let data;
+    try {data=type.includes('application/json')?await response.json():null;}catch {data=null;}
+    if(!response.ok){const error=new Error(data?.error?.code || (response.status===404?'unavailable':'request_failed'));error.code=data?.error?.code;error.status=response.status;throw error;}
+    // An HTML fallback or truncated body is not evidence that a write succeeded.
+    if(!data||typeof data!=='object'||Array.isArray(data))throw Object.assign(new Error('invalid_response'),{code:'invalid_response'});
+    // A completed request belongs to the account that started it. Never let an
+    // old rating, team report or claim response replace the next account's data.
+    if(requestedRevision!==sessionRevision&&!['/status','/session','/community'].includes(path)&&!path.startsWith('/auth/'))throw Object.assign(new Error('account_changed'),{code:'account_changed',status:409,uncertain:method!=='GET'});
+    return data;
+  } finally {clearTimeout(timeout);}
 }
 const api=accountApi;
+let initialising=false,sessionRevision=0,sessionRead=0;
+const sessionIdentity=session=>JSON.stringify([session.user?.id||null,session.user?.email||null,Boolean(session.user?.admin),Boolean(session.user?.emailConfirmed),Boolean(session.passwordChangeRequired)]);
+function replaceSession(session){
+  if(sessionIdentity(state.session)!==sessionIdentity(session)){
+    state.communities.clear();state.profiles.clear();state.team.clear();
+    state.reviews=null;state.people=null;state.sourceReport=null;state.analytics=null;state.workflows=null;state.reportRefreshPending=false;state.resetVerified=false;
+    sessionRevision++;
+  }
+  sessionRead++;state.session=session;
+}
 
 export async function initialiseMembers({refresh=false}={}) {
   if(!state.pendingEmail)try{const draft=JSON.parse(globalThis.sessionStorage?.getItem('idebp-login-draft')||'null');if(draft){state.pendingEmail=draft.email||'';state.recovering=Boolean(draft.recovering);state.createAccount=Boolean(draft.createAccount);state.displayName=draft.displayName||'';}}catch{}
-  if (state.init && !refresh) return state.init;
+  if (state.init && (!refresh||initialising)) return state.init;
+  initialising=true;
   state.init=(async()=>{
     try {
       state.status=await api('/status'); state.unavailable=false;
       if(state.status.configured) {
-        try {state.session=await api('/session');}
-        catch(error) {if([401,403].includes(error.status))state.session={user:null};else state.unavailable=true;}
-      }
+        try {await refreshSession();}
+        catch(error) {if(![401,403].includes(error.status))state.unavailable=true;}
+      }else replaceSession({user:null});
     } catch { state.unavailable=true; state.status=state.status||{configured:false,mode:'setup_required'}; }
+    finally {initialising=false;}
     return {status:state.status,session:state.session};
   })();
   return state.init;
@@ -362,7 +385,12 @@ function showMessage(host,text,error=false) {
   region.setAttribute('role',error?'alert':'status');
 }
 
-async function refreshSession() { const previousId=state.session.user?.id;state.session=await api('/session');if(previousId!==state.session.user?.id){state.communities.clear();state.profiles.clear();state.reviews=null;state.people=null;state.sourceReport=null;state.analytics=null;}return state.session; }
+async function refreshSession() {
+  const revision=sessionRevision,request=++sessionRead;
+  try{const session=await api('/session');if(revision===sessionRevision&&request===sessionRead)replaceSession(session);}
+  catch(error){if(revision===sessionRevision&&request===sessionRead&&[401,403].includes(error.status))replaceSession({user:null});throw error;}
+  return state.session;
+}
 
 export async function completeMutation({submit,refresh=async()=>{},confirm=async()=>false}) {
  let result;
@@ -376,7 +404,7 @@ export async function completeMutation({submit,refresh=async()=>{},confirm=async
  catch{return {result,refreshPending:true};}
 }
 const refreshNotice=' Your change was saved. The latest screen could not be refreshed; use Refresh to update it. Do not submit it again.';
-function requestMessage(lang,error){return error.uncertain?'We could not confirm the result. Check the current status before sending it again. Your form details have been kept.':errorText(lang,error);}
+function requestMessage(lang,error){return error.code==='account_changed'?'The signed-in account has changed. Refresh this page before continuing.':error.uncertain?'We could not confirm the result. Check the current status before sending it again. Your form details have been kept.':errorText(lang,error);}
 
 
 export function bindMemberPage({root=globalThis.document,lang='en',sources=[],onChange=()=>{}}={}) {
@@ -384,11 +412,28 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
   host.dataset.memberBound='true';
   const context={path:host.dataset.memberPath,params:new URLSearchParams(host.dataset.memberQuery || ''),lang,sources};
   if(context.params.get('claim')) state.claimTarget=context.params.get('claim');
-  const refresh=()=>{if(host.isConnected) host.innerHTML=pageContent(context);};
+  const initialEdits=new Map();
+  const fieldKey=field=>{
+    const form=field.closest('[data-member-form]');if(!form||!field.name)return null;
+    const identity=['memberForm','source','operation','userId','requestId','reviewId','kind','invitationId','createAccount','recovery'].map(key=>form.dataset[key]||'');
+    return JSON.stringify([...identity,form.querySelector('[name=source]')?.value||'',field.name,['checkbox','radio'].includes(field.type)?field.value:'']);
+  };
+  const rememberField=field=>{const key=fieldKey(field);if(key)initialEdits.set(key,{value:field.value,checked:field.checked,selected:field.multiple?[...field.selectedOptions].map(option=>option.value):null,accountId:state.session.user?.id});};
+  const refresh=({preserveEdits=false}={})=>{
+    if(!host.isConnected)return;
+    host.innerHTML=pageContent(context);
+    if(preserveEdits)for(const field of host.querySelectorAll('input[name],textarea[name],select[name]')){
+      const edit=initialEdits.get(fieldKey(field));
+      if(!edit||(edit.accountId&&edit.accountId!==state.session.user?.id))continue;
+      field.value=edit.value;if(typeof edit.checked==='boolean')field.checked=edit.checked;
+      if(edit.selected)for(const option of field.options)option.selected=edit.selected.includes(option.value);
+    }
+    initialEdits.clear();
+  };
   const loadReviews=async()=>{
     if(state.session.passwordChangeRequired)return;
     if(state.session.user?.admin && ['/admin','/admin-preview'].includes(context.path)) {
-      try{const reports=await Promise.allSettled([api('/admin/review'),api('/admin/people'),api('/admin/sources'),api('/admin/analytics'),api('/admin/workflows')]);for(const [n,key] of ['reviews','people','sourceReport','analytics','workflows'].entries())if(reports[n].status==='fulfilled')state[key]=reports[n].value;state.reportRefreshPending=reports.some(r=>r.status==='rejected');if(reports.every(r=>r.status==='rejected'))throw reports[0].reason;if(state.sourceReport)state.sourceReport.sources=state.sourceReport.sources.map(record=>{const local=sourceFor(sources,record.slug);return {...record,publicContact:{name:record.contactName||local?.contactName||'',email:record.contactEmail||local?.contactEmail||'',page:local?.contactPage||'',website:record.url,social:local?.social||[]}};});}
+      try{const revision=sessionRevision;const reports=await Promise.allSettled([api('/admin/review'),api('/admin/people'),api('/admin/sources'),api('/admin/analytics'),api('/admin/workflows')]);if(revision!==sessionRevision)return;for(const [n,key] of ['reviews','people','sourceReport','analytics','workflows'].entries())if(reports[n].status==='fulfilled')state[key]=reports[n].value;state.reportRefreshPending=reports.some(r=>r.status==='rejected');if(reports.every(r=>r.status==='rejected'))throw reports[0].reason;if(state.sourceReport)state.sourceReport.sources=state.sourceReport.sources.map(record=>{const local=sourceFor(sources,record.slug);return {...record,publicContact:{name:record.contactName||local?.contactName||'',email:record.contactEmail||local?.contactEmail||'',page:local?.contactPage||'',website:record.url,social:local?.social||[]}};});}
       catch(error){if(error.code==='password_change_required'){await refreshSession();return;}throw error;}
     }
   };
@@ -411,22 +456,24 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
       await loadReviews();
       const selected=context.params.get('edit');
       if(selected && state.session.managedSources?.some(item=>item.slug===selected || item.id===selected)) {
-        const {profile}=await api(`/sources/${safeId(selected)}/profile`);
-        if(state.session.managedSources.find(x=>x.slug===selected)?.role==='owner')state.team.set(selected,await api(`/sources/${safeId(selected)}/team`));
+        const revision=sessionRevision,{profile}=await api(`/sources/${safeId(selected)}/profile`);
+        if(revision!==sessionRevision)return;
+        if(state.session.managedSources.find(x=>x.slug===selected)?.role==='owner'){const team=await api(`/sources/${safeId(selected)}/team`);if(revision!==sessionRevision)return;state.team.set(selected,team);}
         if(profile) state.profiles.set(selected,{...sourceFor(sources,selected),...profile,id:selected});
       }
-    }catch(error){refresh();showMessage(host,requestMessage(lang,error),true);return;}refresh();
+    }catch(error){refresh({preserveEdits:true});showMessage(host,requestMessage(lang,error),true);return;}refresh({preserveEdits:true});
   });
-  host.addEventListener('input',event=>{const form=event.target.closest('[data-member-form=claim]');if(form&&event.target.name!=='source')saveClaimDraft(form);filterAdminRows(host);});
-  host.addEventListener('change',event=>{const form=event.target.closest('[data-member-form=claim]');if(form){state.claimTarget=String(new FormData(form).get('source')||'');if(event.target.name==='source')refresh();else saveClaimDraft(form);}filterAdminRows(host);});
+  host.addEventListener('input',event=>{rememberField(event.target);const form=event.target.closest('[data-member-form=claim]');if(form&&event.target.name!=='source')saveClaimDraft(form);filterAdminRows(host);});
+  host.addEventListener('change',event=>{rememberField(event.target);const form=event.target.closest('[data-member-form=claim]');if(form){state.claimTarget=String(new FormData(form).get('source')||'');if(event.target.name==='source')refresh();else saveClaimDraft(form);}filterAdminRows(host);});
   host.addEventListener('click',async event=>{
-    const button=event.target.closest('[data-member-action]'); if(!button) return;
+    const button=event.target.closest('[data-member-action]'); if(!button||button.dataset.actionBusy) return;
+    const wasDisabled=button.disabled;button.dataset.actionBusy='true';button.disabled=true;
     try {
       if(['revoke-editor','revoke-invitation'].includes(button.dataset.memberAction)){await finish(()=>api(`/sources/${safeId(button.dataset.source)}/revoke-editor`,{method:'POST',body:{userId:button.dataset.userId||null,invitationId:button.dataset.invitationId||null}}),'Source access has been updated.',{update:async()=>{state.team.set(button.dataset.source,await api(`/sources/${safeId(button.dataset.source)}/team`));}});}
       if(button.dataset.memberAction==='export-account'){const content=await api('/account/export');const url=URL.createObjectURL(new Blob([JSON.stringify(content,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='id-ebp-account.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
       if(button.dataset.memberAction==='account-code'){const form=button.closest('form'),emailInput=form.querySelector('[name=email]');if(button.dataset.kind==='email_new'&&!emailInput.reportValidity())return;button.disabled=true;try{await api('/account/verification',{method:'POST',body:{kind:button.dataset.kind,email:emailInput?.value}});showMessage(host,'Verification code sent. It expires in ten minutes. Keep this form open while checking your email.');}finally{button.disabled=false;}}
       if(button.dataset.memberAction==='change-email') {state.pendingEmail='';try{globalThis.sessionStorage?.removeItem('idebp-login-draft');}catch{}refresh();}
-      if(button.dataset.memberAction==='logout') {await api('/auth/logout',{method:'POST',body:{}});state.session={user:null};state.communities.clear();state.resetVerified=false;state.profiles.clear();state.reviews=null;refresh();onChange();}
+      if(button.dataset.memberAction==='logout') {await api('/auth/logout',{method:'POST',body:{}});replaceSession({user:null});refresh();Promise.resolve(onChange()).catch(()=>{});}
       if(button.dataset.memberAction==='resend') {await api('/auth/request',{method:'POST',body:{email:state.pendingEmail,createAccount:state.createAccount,purpose:state.recovering?'reset':'signin',...(state.displayName?{displayName:state.displayName}:{})}});showMessage(host,tr(lang,'codeBody',{email:state.pendingEmail}));}
       if(button.dataset.memberAction==='refresh-admin') {await loadReviews();refresh();}
       if(button.dataset.memberAction==='admin-tab'){state.adminTab=button.dataset.tab;refresh();}
@@ -435,6 +482,7 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
       if(button.dataset.memberAction==='claim-code'){button.disabled=true;try{await requestClaimCode(button.closest('form'));}finally{button.disabled=false;}}
       if(button.dataset.memberAction==='refresh-claim'){await refreshSession();refresh();onChange();}
     } catch(error) {showMessage(host,requestMessage(lang,error),true);}
+    finally {delete button.dataset.actionBusy;button.disabled=wasDisabled;}
   });
   host.addEventListener('submit',async event=>{
     const form=event.target.closest('[data-member-form]'); if(!form) return; event.preventDefault();if(form.dataset.submitting)return;
@@ -447,10 +495,10 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
       }else if(kind==='account-email'){await finish(()=>api('/account/email',{method:'POST',body:{currentCode:String(data.get('currentCode')),newCode:String(data.get('newCode'))}}),'Your account email has been updated. Source access may need review.');
       }else if(kind==='account-deletion'){await finish(()=>api('/account/deletion-request',{method:'POST',body:{token:String(data.get('code'))}}),'Your deletion request has been recorded for administrator review.');
       }else if(kind==='password'){
-        state.session=await api('/auth/password',{method:'POST',body:{email:String(data.get('email')),password:String(data.get('password'))}});globalThis.location.href=state.session.user?.admin?'/admin':'/account';onChange();
+        replaceSession(await api('/auth/password',{method:'POST',body:{email:String(data.get('email')),password:String(data.get('password'))}}));globalThis.location.href=state.session.user?.admin?'/admin':'/account';onChange();
       }else if(kind==='password-change'){
         if(data.get('password')!==data.get('confirmation')){showMessage(host,'The passwords do not match.',true);return;}
-        const recovered=state.resetVerified;await finish(async()=>{state.session=await api('/auth/password-change',{method:'POST',body:{password:String(data.get('password'))}});state.resetVerified=false;state.recovering=false;},'Your new password has been saved.');if(recovered)globalThis.location.href=state.session.user?.admin?'/admin':'/account';
+        const recovered=state.resetVerified;await finish(async()=>{replaceSession(await api('/auth/password-change',{method:'POST',body:{password:String(data.get('password'))}}));state.resetVerified=false;state.recovering=false;},'Your new password has been saved.');if(recovered)globalThis.location.href=state.session.user?.admin?'/admin':'/account';
       }else if(kind==='invite-editor'||kind==='accept-editor'){
         await finish(()=>api(`/sources/${safeId(form.dataset.source)}/${kind}`,{method:'POST',body:{email:String(data.get('email')||'').trim(),invitationId:form.dataset.invitationId}}),kind==='invite-editor'?'Invitation recorded. A service email is queued for your colleague, with instructions to sign in using this exact address and accept it.':'Invitation accepted. Open Your sources to propose changes.',{update:async()=>{await refreshSession();if(kind==='invite-editor')state.team.set(form.dataset.source,await api(`/sources/${safeId(form.dataset.source)}/team`));}});
       }else if(kind==='admin-action'){
@@ -460,21 +508,25 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
         await api('/auth/request',{method:'POST',body:{email,createAccount,purpose:recovering?'reset':'signin',...(displayName?{displayName}:{})}});
         state.pendingEmail=email;state.recovering=recovering;state.createAccount=createAccount;state.displayName=displayName;try{globalThis.sessionStorage?.setItem('idebp-login-draft',JSON.stringify({email,recovering,createAccount,displayName}));}catch{}refresh();host.querySelector('[name="token"]')?.focus();
       } else if(kind==='verify') {
-        let verified;try{verified=await api('/auth/verify',{method:'POST',body:{email:state.pendingEmail,token:String(data.get('token') || '').trim()}});}catch(error){if(!error.status||error.status>=500){const session=await api('/session').catch(()=>null);if(session?.user&&session.user.email?.toLowerCase()===state.pendingEmail.toLowerCase()&&(!state.recovering||session.recoveryVerified))verified=session;}if(!verified)throw error;}state.session=verified;state.pendingEmail='';try{globalThis.sessionStorage?.removeItem('idebp-login-draft');}catch{}if(state.recovering&&(verified.recovery||verified.recoveryVerified)){state.resetVerified=true;refresh();return;}onChange();const destination=state.claimTarget?`/source-workspace?claim=${safeId(state.claimTarget)}`:state.session.user?.admin?'/admin':'/account';state.claimTarget='';globalThis.location.href=destination;
+        let verified;try{verified=await api('/auth/verify',{method:'POST',body:{email:state.pendingEmail,token:String(data.get('token') || '').trim()}});}catch(error){if(!error.status||error.status>=500){const session=await api('/session').catch(()=>null);if(session?.user&&session.user.email?.toLowerCase()===state.pendingEmail.toLowerCase()&&(!state.recovering||session.recoveryVerified))verified=session;}if(!verified)throw error;}replaceSession(verified);state.pendingEmail='';try{globalThis.sessionStorage?.removeItem('idebp-login-draft');}catch{}if(state.recovering&&(verified.recovery||verified.recoveryVerified)){state.resetVerified=true;refresh();return;}onChange();const destination=state.claimTarget?`/source-workspace?claim=${safeId(state.claimTarget)}`:state.session.user?.admin?'/admin':'/account';state.claimTarget='';globalThis.location.href=destination;
       } else if(kind==='claim') {
         if(form.dataset.claimStep==='email'){await requestClaimCode(form);return;}
         const {slug,draft}=saveClaimDraft(form);
         if(draft.email.trim().toLowerCase()!==draft.sentTo){await requestClaimCode(form);return;}
         await finish(async()=>{
           const result=await api(`/sources/${safeId(slug)}/claim`,{method:'POST',body:{email:draft.email.trim(),token:String(data.get('token')||'').trim(),evidence:draft.evidence.trim(),evidenceUrl:draft.evidenceUrl.trim()}});
-          if(result.session&&!result.sessionRefreshPending)state.session=result.session;else if(result.session)state.session={...state.session,...result.session};
+          if(result.session&&!result.sessionRefreshPending)replaceSession(result.session);else if(result.session)replaceSession({...state.session,...result.session});
           if(!state.session.claims?.some(c=>c.slug===slug))state.session.claims=[...(state.session.claims||[]).filter(c=>c.slug!==slug),{...result.claim,slug,name:sourceFor(sources,slug)?.name,state:result.claim?.state||'review'}];
           return result;
         },tr(lang,'claimRequested'),{confirm:async()=>{await refreshSession();return state.session.managedSources?.some(c=>c.slug===slug)||state.session.claims?.some(c=>c.slug===slug&&['pending','review','accepted','approved'].includes(c.state));}});
         state.claimDrafts.delete(slug);try{globalThis.sessionStorage?.removeItem('idebp-claim:'+slug);}catch{}
 
       } else if(kind==='revision') {
-        await api(`/sources/${safeId(form.dataset.source)}/profile`,{method:'PATCH',body:{name:String(data.get('name') || '').trim(),about:String(data.get('about') || '').trim(),publisher:String(data.get('publisher') || '').trim(),topics:data.getAll('topics'),methods:data.getAll('methods'),contentTypes:data.getAll('contentTypes'),url:String(data.get('url')||'').trim(),country:COUNTRY_CODES[data.get('country')],languages:data.getAll('languages').map(name=>LANGUAGE_CODES[name]).filter(Boolean),publicDetails:{...Object.fromEntries(['contactName','contactEmail','contactPage','portraitSourceUrl','portraitAlt'].map(key=>[key,String(data.get(key)||'').trim()])),...(String(data.get('logoUrl')||'').trim()||data.get('removeLogo')?{logoUrl:data.get('removeLogo')?'':String(data.get('logoUrl')).trim()}:{}),...(String(data.get('portraitUrl')||'').trim()||data.get('removePortrait')?{portraitUrl:data.get('removePortrait')?'':String(data.get('portraitUrl')).trim()}:{}),social:String(data.get('social')||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean),imagePermission:data.get('imagePermission')==='on'}}});
+        const revision={name:String(data.get('name') || '').trim(),about:String(data.get('about') || '').trim(),publisher:String(data.get('publisher') || '').trim(),topics:data.getAll('topics'),methods:data.getAll('methods'),contentTypes:data.getAll('contentTypes'),url:String(data.get('url')||'').trim(),country:COUNTRY_CODES[data.get('country')],languages:data.getAll('languages').map(name=>LANGUAGE_CODES[name]).filter(Boolean),publicDetails:{...Object.fromEntries(['contactName','contactEmail','contactPage','portraitSourceUrl','portraitAlt'].map(key=>[key,String(data.get(key)||'').trim()])),...(String(data.get('logoUrl')||'').trim()||data.get('removeLogo')?{logoUrl:data.get('removeLogo')?'':String(data.get('logoUrl')).trim()}:{}),...(String(data.get('portraitUrl')||'').trim()||data.get('removePortrait')?{portraitUrl:data.get('removePortrait')?'':String(data.get('portraitUrl')).trim()}:{}),social:String(data.get('social')||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean),imagePermission:data.get('imagePermission')==='on'}};
+        const submitted=JSON.stringify(revision);
+        if(form.dataset.submittedRevision===submitted){showMessage(form,tr(lang,'revisionSubmitted'));return;}
+        await completeMutation({submit:()=>api(`/sources/${safeId(form.dataset.source)}/profile`,{method:'PATCH',body:revision})});
+        form.dataset.submittedRevision=submitted;
         showMessage(form,tr(lang,'revisionSubmitted'));
         form.querySelector('[data-member-message]')?.scrollIntoView({block:'nearest'});
       } else if(kind==='new-source') {
@@ -511,21 +563,21 @@ export function bindContributionWidgets({root=globalThis.document,lang='en',sour
     if(host.dataset.contributionBound) return;host.dataset.contributionBound='true';
     const slug=host.dataset.contributionSource, source=sourceFor(sources,slug) || {id:slug};
     const refresh=()=>{if(host.isConnected) host.innerHTML=contributionContent(source,lang);};
-    const load=async()=>{state.communities.set(slug,await api(`/sources/${safeId(slug)}/community`));};
+    const load=async()=>{const revision=sessionRevision;const result=await api(`/sources/${safeId(slug)}/community`);if(revision===sessionRevision)state.communities.set(slug,result);};
     initialiseMembers().then(async()=>{try{await load();}catch{/* The source remains browsable when contributions are unavailable. */}refresh();});
     host.addEventListener('submit',async event=>{
-      const form=event.target.closest('[data-contribution-form]');if(!form) return;event.preventDefault();
+      const form=event.target.closest('[data-contribution-form]');if(!form) return;event.preventDefault();if(form.dataset.submitting)return;
       if(!canWrite()) {showMessage(host,tr(lang,state.status?.configured?'signInRequired':'setupShort'),true);return;}
-      const buttons=[...form.querySelectorAll('button')];buttons.forEach(button=>button.disabled=true);
+      const buttons=[...form.querySelectorAll('button')];buttons.forEach(button=>button.disabled=true);form.dataset.submitting='true';
       try {
         const data=new FormData(form);
         if(form.dataset.contributionForm==='rating') {
           const stars=normaliseRating(data.get('rating'));if(stars===null) {showMessage(host,tr(lang,'ratingMissing'),true);return;}
           const outcome=await completeMutation({submit:()=>api(`/sources/${safeId(slug)}/rating`,{method:'PUT',body:{stars}}),refresh:load});refresh();showMessage(host,tr(lang,'ratingSaved')+(outcome.refreshPending?refreshNotice:''));onChange();
         } else {
-          await api(`/sources/${safeId(slug)}/tags`,{method:'POST',body:{label:String(data.get('label') || '').trim()}});form.reset();showMessage(host,tr(lang,'tagSubmitted'));
+          await completeMutation({submit:()=>api(`/sources/${safeId(slug)}/tags`,{method:'POST',body:{label:String(data.get('label') || '').trim()}})});form.reset();showMessage(host,tr(lang,'tagSubmitted'));
         }
-      } catch(error){showMessage(host,requestMessage(lang,error),true);}finally{buttons.forEach(button=>button.disabled=false);}
+      } catch(error){showMessage(host,requestMessage(lang,error),true);}finally{delete form.dataset.submitting;buttons.forEach(button=>button.disabled=false);}
     });
     host.addEventListener('click',async event=>{
       const star=event.target.closest('[data-rate]');if(star){if(!canWrite()){globalThis.location.href='/login';return;}if(host.dataset.ratingBusy)return;host.dataset.ratingBusy='true';try{const outcome=await completeMutation({submit:async()=>{const result=await api(`/sources/${safeId(slug)}/rating`,{method:'PUT',body:{stars:Number(star.dataset.rate)}});state.communities.set(slug,{...state.communities.get(slug),...result});return result;},refresh:load,confirm:async()=>{await load();return state.communities.get(slug)?.rating?.own===Number(star.dataset.rate);}});refresh();showMessage(host,tr(lang,'ratingSaved')+(outcome.refreshPending?refreshNotice:''));Promise.resolve(onChange()).catch(()=>{});}catch(error){showMessage(host,requestMessage(lang,error),true);}finally{delete host.dataset.ratingBusy;}return;}
