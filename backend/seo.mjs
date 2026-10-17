@@ -1,5 +1,5 @@
 // Public, server-rendered directory pages. The browser enhances the same content.
-const ORIGIN='https://id-ebp.org';
+const ORIGIN='https://www.id-ebp.org';
 const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const serialise=value=>JSON.stringify(value).replaceAll('<','\\u003c');
 const slugify=value=>value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');

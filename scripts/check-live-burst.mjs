@@ -8,7 +8,7 @@ async function worker(){
   for(;;){
     const index=next++;if(index>=64)return;
     const started=performance.now();
-    const response=await fetch('https://id-ebp.org/api/session',{signal:AbortSignal.timeout(20000)});
+    const response=await fetch('https://www.id-ebp.org/api/session',{signal:AbortSignal.timeout(20000)});
     assert.equal(response.status,200,`Session request ${index}: HTTP ${response.status}`);
     assert.match(response.headers.get('cache-control')||'',/no-store/);
     assert.equal((await response.json()).user,null,'Anonymous session returned a user');

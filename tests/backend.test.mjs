@@ -35,10 +35,10 @@ function fixture(options={}){
   };
   const jar=new Map();let csrfToken;
   const call=async(path,body,options={})=>{
-    const headers={'Origin':'https://id-ebp.org','Content-Type':'application/json',...options.headers};
+    const headers={'Origin':'https://www.id-ebp.org','Content-Type':'application/json',...options.headers};
     if(jar.size)headers.Cookie=[...jar].map(([key,value])=>key+'='+value).join('; ');
     if(csrfToken&&!Object.hasOwn(headers,'X-CSRF-Token'))headers['X-CSRF-Token']=csrfToken;
-    const response=await handleApi(new Request('https://id-ebp.org'+path,{method:options.method||(body===undefined?'GET':'POST'),headers,...(body===undefined?{}:{body:JSON.stringify(body)})}),options.env||env,{fetch});
+    const response=await handleApi(new Request('https://www.id-ebp.org'+path,{method:options.method||(body===undefined?'GET':'POST'),headers,...(body===undefined?{}:{body:JSON.stringify(body)})}),options.env||env,{fetch});
     for(const value of response.headers.getSetCookie()){const [pair]=value.split(';'),[key,valuePart]=pair.split(/=(.*)/s);if(valuePart)jar.set(key,valuePart);else jar.delete(key);}
     const result=await response.json();if(result.csrfToken)csrfToken=result.csrfToken;
     return {response,result};
@@ -74,7 +74,7 @@ test('unconfirmed email cannot create a member session',async()=>{
 test('cross-site requests, absent CSRF and tampered cookies cannot mutate a rating',async()=>{
   const f=fixture();await f.signIn();
   let result=await f.call('/api/sources/fixture/rating',{stars:5},{method:'PUT',headers:{Origin:'https://attacker.test'}});assert.equal(result.response.status,403);assert.equal(result.result.error.code,'origin_denied');
-  const raw=new Request('https://id-ebp.org/api/sources/fixture/rating',{method:'PUT',headers:{Origin:'https://id-ebp.org','Content-Type':'application/json',Cookie:[...f.jar].map(([k,v])=>k+'='+v).join('; ')},body:'{"stars":5}'});
+  const raw=new Request('https://www.id-ebp.org/api/sources/fixture/rating',{method:'PUT',headers:{Origin:'https://www.id-ebp.org','Content-Type':'application/json',Cookie:[...f.jar].map(([k,v])=>k+'='+v).join('; ')},body:'{"stars":5}'});
   result=await handleApi(raw,env,{fetch:async()=>Response.json(user)});assert.equal(result.status,403);assert.equal((await result.json()).error.code,'csrf_failed');
   f.jar.set('__Host-idebp_session',f.jar.get('__Host-idebp_session')+'tampered');result=await f.call('/api/sources/fixture/rating',{stars:5},{method:'PUT'});assert.equal(result.response.status,401);
   assert.equal(f.calls.filter(x=>x.body?.p_action==='rate_source').length,0);

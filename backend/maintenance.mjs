@@ -27,7 +27,7 @@ async function publicFetch(value,{fetcher=fetch,maxBytes=1048576}={}){
  return timedOperation(async signal=>{
   let url=publicWebUrl(value);if(!url)throw Error('Unsupported public URL');let redirected=false;
   for(let n=0;n<4;n++){
-   const response=await fetcher(url,{redirect:'manual',headers:{'User-Agent':'ID-EBP source-maintenance/1.0 (+https://id-ebp.org/about)','Accept':'text/html,image/png,image/jpeg,image/webp'},signal});
+   const response=await fetcher(url,{redirect:'manual',headers:{'User-Agent':'ID-EBP source-maintenance/1.0 (+https://www.id-ebp.org/about)','Accept':'text/html,image/png,image/jpeg,image/webp'},signal});
    if([301,302,303,307,308].includes(response.status)){await response.body?.cancel();const location=response.headers.get('Location');if(!location)throw Error('Missing redirect destination');const next=publicWebUrl(new URL(location,url).href);if(!next)throw Error('Unsafe redirect');url=next;redirected=true;continue;}
    return {response,url,redirected,bytes:await boundedBody(response,maxBytes,signal)};
   }
@@ -55,7 +55,7 @@ async function directoryTask(env,action,payload={}){
  if(!env.DIRECTORY_API_URL||!env.DIRECTORY_PROXY_SECRET)throw Error('Task service not configured');
  const endpoint=directoryEndpoint(env.DIRECTORY_API_URL);
  return timedOperation(async signal=>{
-  const response=await fetch(endpoint+'/api/internal/'+action,{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',Origin:'https://id-ebp.org','X-IDEBP-Proxy-Key':env.DIRECTORY_PROXY_SECRET,'X-IDEBP-Internal':'scheduled'},body:JSON.stringify(payload),signal});
+  const response=await fetch(endpoint+'/api/internal/'+action,{method:'POST',redirect:'manual',headers:{'Content-Type':'application/json',Origin:'https://www.id-ebp.org','X-IDEBP-Proxy-Key':env.DIRECTORY_PROXY_SECRET,'X-IDEBP-Internal':'scheduled'},body:JSON.stringify(payload),signal});
   if(!response.ok){await response.body?.cancel();throw Error('Task service unavailable');}
   const data=JSON.parse(new TextDecoder().decode(await boundedBody(response,2097152,signal)));
   if(action.endsWith('-complete')&&data.updated!==true)throw Error('Task lease was not acknowledged');

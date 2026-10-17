@@ -36,10 +36,10 @@ function fixture({shortExpiry=false,rejectCodes=false,identityFor=()=>identity,e
   function client(address=identity.email){
     const jar=new Map();let csrf;
     const call=async(path,body,{method=body===undefined?'GET':'POST',clientIp='192.0.2.1',sendCsrf=true,headers:extraHeaders={},trustedClientIp=false}={})=>{
-      const headers={'Content-Type':'application/json',Origin:'https://id-ebp.org',...extraHeaders};
+      const headers={'Content-Type':'application/json',Origin:'https://www.id-ebp.org',...extraHeaders};
       if(jar.size)headers.Cookie=[...jar].map(([k,v])=>k+'='+v).join('; ');
       if(csrf&&sendCsrf)headers['X-CSRF-Token']=csrf;
-      const response=await handleApi(new Request('https://id-ebp.org'+path,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)})}),{...env,...envOverrides},{fetch,clientIp,trustedClientIp});
+      const response=await handleApi(new Request('https://www.id-ebp.org'+path,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)})}),{...env,...envOverrides},{fetch,clientIp,trustedClientIp});
       for(const value of response.headers.getSetCookie()){const [pair]=value.split(';'),[key,entry]=pair.split(/=(.*)/s);if(entry)jar.set(key,entry);else jar.delete(key);}
       const result=await response.json();if(result.csrfToken)csrf=result.csrfToken;return {response,result};
     };
@@ -115,7 +115,7 @@ test('increasing the shared-IP allowance does not weaken the per-mailbox passwor
 
 test('successful malformed upstream JSON cannot be reported as an empty success',async()=>{
   for(const body of ['not JSON','{"incomplete":','null','[]','true','']){
-    const result=await handleApi(new Request('https://id-ebp.org/api/community'),env,{fetch:async()=>new Response(body,{headers:{'Content-Type':'application/json'}})});
+    const result=await handleApi(new Request('https://www.id-ebp.org/api/community'),env,{fetch:async()=>new Response(body,{headers:{'Content-Type':'application/json'}})});
     assert.equal(result.status,503);assert.equal((await result.json()).error.code,'service_unavailable');
   }
 });
@@ -123,7 +123,7 @@ test('successful malformed upstream JSON cannot be reported as an empty success'
 test('upstream response streams are cancelled once they exceed the 4 MiB budget',async()=>{
   let cancelled=false,reads=0;
   const stream=new ReadableStream({pull(controller){reads++;controller.enqueue(new Uint8Array(1024*1024));},cancel(){cancelled=true;}});
-  const result=await handleApi(new Request('https://id-ebp.org/api/community'),env,{fetch:async()=>new Response(stream,{headers:{'Content-Type':'application/json'}})});
+  const result=await handleApi(new Request('https://www.id-ebp.org/api/community'),env,{fetch:async()=>new Response(stream,{headers:{'Content-Type':'application/json'}})});
   assert.equal(result.status,503);assert.equal(cancelled,true);assert.ok(reads<=6);
 });
 

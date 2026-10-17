@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 // Public, read-only checks. No credentials, sign-in attempts or mail are sent.
-const origin='https://id-ebp.org';
+const origin='https://www.id-ebp.org';
 async function get(path){
   const response=await fetch(origin+path,{signal:AbortSignal.timeout(20000),redirect:'manual'});
   assert.equal(response.status,200,`${path}: HTTP ${response.status}`);
@@ -22,7 +22,7 @@ const community=await (await get('/api/community')).json();
 assert.ok(Object.keys(community.sources||{}).length>0,'Public catalogue is empty');
 const session=await (await get('/api/session')).json();
 assert.equal(session.user,null,'Anonymous session exposed an account');
-for(const url of ['http://id-ebp.org/','https://www.id-ebp.org/']){
+for(const url of ['http://id-ebp.org/','https://id-ebp.org/','http://www.id-ebp.org/']){
   const response=await fetch(url,{signal:AbortSignal.timeout(20000),redirect:'manual'});
   assert.ok([301,302,307,308].includes(response.status),`${url}: canonical redirect missing`);
   assert.equal(response.headers.get('location'),origin+'/');

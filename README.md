@@ -49,7 +49,7 @@ The [17 October code/security review](docs/audits/2026-10-17-code-review.md) rec
 
 Preview Worker: `idebp-preview`, under Nathan's Cloudflare account. Published preview: https://idebp-preview.ntracey.workers.dev.
 
-Nathan registered `id-ebp.org` on 14 October 2026. Cloudflare custom domains attach `id-ebp.org` and `www.id-ebp.org` to the preview Worker. The Worker redirects the www hostname and plain HTTP to `https://id-ebp.org`, preserving paths and queries. TLS certificates are active. Public HTTPS checks on 14 October returned 200 for the main address and 308 to the main address for www. The workers.dev preview address also remains available.
+Nathan registered `id-ebp.org` on 14 October 2026. Cloudflare custom domains attach `id-ebp.org` and `www.id-ebp.org` to the preview Worker. The Worker redirects the apex hostname and plain HTTP to `https://www.id-ebp.org`, preserving paths and queries. TLS certificates are active. Public HTTPS checks on 14 October returned 200 for the main address and 308 to the main address for www. The workers.dev preview address also remains available.
 
 The GitHub repository is the source of truth. A production Cloudflare build connection should run the build and tests before deployment. Configure deployment secrets in Cloudflare/GitHub, never in this repository.
 

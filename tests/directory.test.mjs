@@ -46,12 +46,12 @@ test('served preview has restrictive headers and cannot expose backend files',as
  assert.equal(secret.status,404);
 });
 test('www and plain HTTP redirect to the canonical HTTPS domain without losing paths or queries',async()=>{
- for(const address of ['http://www.id-ebp.org/app.js?version=2','https://www.id-ebp.org/app.js?version=2','http://id-ebp.org/app.js?version=2']){
+ for(const address of ['http://www.id-ebp.org/app.js?version=2','https://id-ebp.org/app.js?version=2','http://id-ebp.org/app.js?version=2']){
   const response=await worker.fetch(new Request(address));
   assert.equal(response.status,308);
-  assert.equal(response.headers.get('location'),'https://id-ebp.org/app.js?version=2');
+  assert.equal(response.headers.get('location'),'https://www.id-ebp.org/app.js?version=2');
  }
- for(const address of ['https://id-ebp.org/','https://idebp-preview.ntracey.workers.dev/']){
+ for(const address of ['https://www.id-ebp.org/','https://idebp-preview.ntracey.workers.dev/']){
   assert.equal((await worker.fetch(new Request(address))).status,200);
  }
 });

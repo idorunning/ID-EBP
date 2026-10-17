@@ -12,7 +12,7 @@ function readCommunity(env){
  const reading=timedOperation(async signal=>{
   const endpoint=directoryEndpoint(env.DIRECTORY_API_URL);
   if(!env.DIRECTORY_PROXY_SECRET)throw Error('Account service proxy is not configured');
-  const reply=await fetch(endpoint+'/api/community',{redirect:'error',headers:{'X-IDEBP-Proxy-Key':env.DIRECTORY_PROXY_SECRET},signal});
+  const reply=await fetch(endpoint+'/api/community',{redirect:'manual',headers:{'X-IDEBP-Proxy-Key':env.DIRECTORY_PROXY_SECRET},signal});
   if(!reply.ok){await reply.body?.cancel();throw Error('Directory unavailable');}
   const data=JSON.parse(new TextDecoder().decode(await boundedBody(reply,4194304,signal)));
   if(!data||typeof data!=='object'||Array.isArray(data)||!data.sources||typeof data.sources!=='object'||Array.isArray(data.sources))throw Error('Invalid directory response');
@@ -63,8 +63,8 @@ export default {
       'X-Robots-Tag':'noindex, nofollow',
     };
     // Keep the purchased domain canonical; leave the workers.dev preview usable.
-    if(url.hostname==='www.id-ebp.org'||(url.hostname==='id-ebp.org'&&url.protocol!=='https:')){
-      url.hostname='id-ebp.org';
+    if(url.hostname==='id-ebp.org'||(url.hostname==='www.id-ebp.org'&&url.protocol!=='https:')){
+      url.hostname='www.id-ebp.org';
       url.protocol='https:';
       url.port='';
       return new Response(null,{status:308,headers:{...security,Location:url.href,'Cache-Control':'public, max-age=3600'}});
@@ -88,7 +88,8 @@ export default {
               try{body=await boundedBody(request,16384,signal);}catch(error){if(signal.aborted)throw error;return Response.json({error:{code:'body_too_large',message:'The submitted details are too long.'}},{status:413});}
               headers.delete('Content-Length');
             }
-            const upstream=await fetch(new Request(endpoint+url.pathname+url.search,{method:request.method,headers,body,redirect:'error',signal}));
+            const upstream=await fetch(new Request(endpoint+url.pathname+url.search,{method:request.method,headers,body,redirect:'manual',signal}));
+            if(upstream.status>=300&&upstream.status<400){await upstream.body?.cancel();throw Error('Account service redirect refused');}
             const bytes=await boundedBody(upstream,4194304,signal);
             const responseHeaders=new Headers(upstream.headers);responseHeaders.delete('Content-Length');responseHeaders.delete('Content-Encoding');
             return new Response([204,205,304].includes(upstream.status)?null:bytes,{status:upstream.status,headers:responseHeaders});
@@ -112,8 +113,8 @@ export default {
       }catch{return Response.json({error:{code:'service_unavailable',message:'The account service is temporarily unavailable. You can still browse the directory.'}},{status:503,headers:{...security,'Cache-Control':'no-store'}});}
     }
     if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405,headers:{...security,Allow:'GET, HEAD'}});
-    const production=url.hostname==='id-ebp.org';
-    if(url.pathname==='/robots.txt')return new Response(request.method==='HEAD'?null:production?'User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://id-ebp.org/sitemap.xml\n':'User-agent: *\nDisallow: /\n',{headers:{...security,'Content-Type':'text/plain; charset=utf-8'}});
+    const production=url.hostname==='www.id-ebp.org';
+    if(url.pathname==='/robots.txt')return new Response(request.method==='HEAD'?null:production?'User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: https://www.id-ebp.org/sitemap.xml\n':'User-agent: *\nDisallow: /\n',{headers:{...security,'Content-Type':'text/plain; charset=utf-8'}});
     if(url.pathname.endsWith('/')&&url.pathname!=='/')return Response.redirect(url.origin+url.pathname.replace(/\/+$/,'')+url.search,308);
     const mediaMatch=url.pathname.match(/^\/media\/sources\/([a-z0-9-]+)\/(logo|portrait)$/);
     const documentRoute=!url.pathname.split('/').pop().includes('.')||['/sitemap.xml','/catalogue.json','/llms.txt'].includes(url.pathname);
@@ -121,14 +122,14 @@ export default {
       let community=null;
       if(env.DIRECTORY_API_URL){
         try{community=await readCommunity(env);}
-        catch{return new Response('The directory is temporarily unavailable. Please try again shortly.',{status:503,headers:{...security,'Retry-After':'60'}});}
+        catch(error){console.error('directory_read_failed',error.name,error.message);return new Response('The directory is temporarily unavailable. Please try again shortly.',{status:503,headers:{...security,'Retry-After':'60'}});}
       }
       if(mediaMatch){const response=await serveSourceMedia(mediaMatch[1],mediaMatch[2],community);const headers=new Headers(response.headers);for(const [name,value] of Object.entries(security))if(!headers.has(name))headers.set(name,value);return new Response(request.method==='HEAD'?null:response.body,{status:response.status,headers});}
       if(url.pathname.startsWith('/source/')&&community?.redirects?.[url.pathname.slice(8)])return Response.redirect(url.origin+'/source/'+community.redirects[url.pathname.slice(8)],308);
       const sources=catalogueFromCommunity(CATALOGUE,community);
       if(url.pathname==='/sitemap.xml')return new Response(request.method==='HEAD'?null:sitemap(sources),{headers:{...security,'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public, max-age=60'}});
-      if(url.pathname==='/catalogue.json')return new Response(request.method==='HEAD'?null:JSON.stringify({name:'ID-EBP public source catalogue',url:'https://id-ebp.org',summaryNotice:'Auto-generated source summaries; source ownership verification is not study-quality certification.',sources:sources.map(s=>({id:s.id,name:s.name,url:s.url,profileUrl:'https://id-ebp.org/source/'+s.id,summary:s.about,country:s.country,topics:s.topics,types:s.types,verifiedOwner:Boolean(s.signals?.organisationConfirmed),checked:s.checked}))}),{headers:{...security,'Content-Type':'application/json; charset=utf-8','X-Robots-Tag':production?'index, follow':'noindex, nofollow'}});
-      if(url.pathname==='/llms.txt')return new Response(request.method==='HEAD'?null:'# International Directory of Evidence-Based Policing\n\nID-EBP signposts research sources; it does not certify individual studies. Source summaries are auto-generated and labelled.\n\n- [Directory](https://id-ebp.org/directory)\n- [Source guide](https://id-ebp.org/source-guide)\n- [Ranking and ownership verification](https://id-ebp.org/ranking)\n- [Public catalogue JSON](https://id-ebp.org/catalogue.json)\n- [Sitemap](https://id-ebp.org/sitemap.xml)\n\nContact: contact@id-ebp.org\n',{headers:{...security,'Content-Type':'text/plain; charset=utf-8'}});
+      if(url.pathname==='/catalogue.json')return new Response(request.method==='HEAD'?null:JSON.stringify({name:'ID-EBP public source catalogue',url:'https://www.id-ebp.org',summaryNotice:'Auto-generated source summaries; source ownership verification is not study-quality certification.',sources:sources.map(s=>({id:s.id,name:s.name,url:s.url,profileUrl:'https://www.id-ebp.org/source/'+s.id,summary:s.about,country:s.country,topics:s.topics,types:s.types,verifiedOwner:Boolean(s.signals?.organisationConfirmed),checked:s.checked}))}),{headers:{...security,'Content-Type':'application/json; charset=utf-8','X-Robots-Tag':production?'index, follow':'noindex, nofollow'}});
+      if(url.pathname==='/llms.txt')return new Response(request.method==='HEAD'?null:'# International Directory of Evidence-Based Policing\n\nID-EBP signposts research sources; it does not certify individual studies. Source summaries are auto-generated and labelled.\n\n- [Directory](https://www.id-ebp.org/directory)\n- [Source guide](https://www.id-ebp.org/source-guide)\n- [Ranking and ownership verification](https://www.id-ebp.org/ranking)\n- [Public catalogue JSON](https://www.id-ebp.org/catalogue.json)\n- [Sitemap](https://www.id-ebp.org/sitemap.xml)\n\nContact: contact@id-ebp.org\n',{headers:{...security,'Content-Type':'text/plain; charset=utf-8'}});
       const page=publicDocument(ASSETS['/index.html'].body,url.pathname,url.searchParams,sources);
       const nonce=btoa(crypto.randomUUID());
       const html=page.html.replace('<script type="application/ld+json">',`<script type="application/ld+json" nonce="${nonce}">`);
@@ -139,7 +140,7 @@ export default {
     const asset=ASSETS[path];
     if(!asset)return new Response('Not found',{status:404,headers:security});
     const body=asset.base64?Uint8Array.from(atob(asset.body),c=>c.charCodeAt(0)):asset.body;
-    return new Response(request.method==='HEAD'?null:body,{headers:{...security,'Content-Type':asset.type,'Cache-Control':'public, max-age=60'}});
+    return new Response(request.method==='HEAD'?null:body,{headers:{...security,'Content-Type':asset.type,'X-Robots-Tag':production&&['/favicon.png','/assets/brand/id-ebp-approved.webp'].includes(path)?'index, follow':security['X-Robots-Tag'],'Cache-Control':'public, max-age=60'}});
   }
 };
 

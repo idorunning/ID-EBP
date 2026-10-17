@@ -5,17 +5,17 @@ import {boundedBody,directoryEndpoint,timedOperation,runDirectoryTasks,serveSour
 
 const proxyEnv=()=>({DIRECTORY_API_URL:'https://fixture.supabase.co/functions/v1/directory-api',DIRECTORY_PROXY_SECRET:'isolated-fixture-proxy'});
 const community=()=>({authoritative:true,sources:{live:{profile:{name:'Public fixture',about:'A public summary.',url:'https://fixture.org',country:'GB',types:['University'],topics:[],contentTypes:[]}}}});
-const post=(path,body,headers={})=>new Request('https://id-ebp.org'+path,{method:'POST',headers:{Origin:'https://id-ebp.org','Content-Type':'application/json',...headers},body:typeof body==='string'?body:JSON.stringify(body)});
+const post=(path,body,headers={})=>new Request('https://www.id-ebp.org'+path,{method:'POST',headers:{Origin:'https://www.id-ebp.org','Content-Type':'application/json',...headers},body:typeof body==='string'?body:JSON.stringify(body)});
 
 test('200 simultaneous public reads share one anonymous upstream request, with no stale cache after withdrawal',async t=>{
  const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);const calls=[],env=proxyEnv();let published=true;
  globalThis.fetch=async(url,options)=>{calls.push({url,headers:options.headers});await new Promise(resolve=>setTimeout(resolve,10));return Response.json(published?community():{authoritative:true,sources:{}});};
  const started=performance.now();
- const responses=await Promise.all(Array.from({length:200},(_,i)=>worker.fetch(new Request('https://id-ebp.org'+(i%2?'/source/live':'/api/community'),{headers:{Cookie:'member-'+i}}),env)));
+ const responses=await Promise.all(Array.from({length:200},(_,i)=>worker.fetch(new Request('https://www.id-ebp.org'+(i%2?'/source/live':'/api/community'),{headers:{Cookie:'member-'+i}}),env)));
  assert.equal(calls.length,1);assert.equal(new Headers(calls[0].headers).get('Cookie'),null);
  for(const response of responses){assert.equal(response.status,200);assert.equal(response.headers.get('Set-Cookie'),null);await response.text();}
  t.diagnostic(`Isolated in-memory concurrency check: 200 responses, one upstream read, ${Math.round(performance.now()-started)} ms. This is not a production capacity benchmark.`);
- published=false;assert.equal((await worker.fetch(new Request('https://id-ebp.org/source/live'),env)).status,404);assert.equal(calls.length,2);
+ published=false;assert.equal((await worker.fetch(new Request('https://www.id-ebp.org/source/live'),env)).status,404);assert.equal(calls.length,2);
 });
 
 test('100 concurrent account requests keep each reply and session cookie separate and uncached',async t=>{
@@ -30,7 +30,7 @@ test('proxy rejects oversize bodies before contacting the backend and bounds ups
  const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);let calls=0;
  globalThis.fetch=async()=>{calls++;return Response.json({ok:true});};
  let response=await worker.fetch(post('/api/auth/password','x'.repeat(16385)),proxyEnv());assert.equal(response.status,413);assert.equal(calls,0);
- globalThis.fetch=async()=>new Response('x'.repeat(4194305));response=await worker.fetch(new Request('https://id-ebp.org/api/session'),proxyEnv());assert.equal(response.status,503);assert.doesNotMatch(await response.text(),/xxxx/);
+ globalThis.fetch=async()=>new Response('x'.repeat(4194305));response=await worker.fetch(new Request('https://www.id-ebp.org/api/session'),proxyEnv());assert.equal(response.status,503);assert.doesNotMatch(await response.text(),/xxxx/);
 });
 
 test('proxy strips client authentication overrides and strips secret delivery data on every response',async t=>{
@@ -55,7 +55,7 @@ test('direct backend transport delivers codes internally without returning them 
 test('trusted backend validation rejects credentials, ports, queries and external hosts before sending a proxy secret',async t=>{
  for(const value of ['https://fixture.supabase.co:444/functions/v1/directory-api','https://user:pass@fixture.supabase.co/functions/v1/directory-api','https://fixture.supabase.co/functions/v1/directory-api?extra=1','https://untrusted.org/functions/v1/directory-api'])assert.throws(()=>directoryEndpoint(value));
  const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);let calls=0;globalThis.fetch=async()=>{calls++;throw Error('Must not fetch');};
- const response=await worker.fetch(new Request('https://id-ebp.org/directory'),{...proxyEnv(),DIRECTORY_API_URL:'https://untrusted.org/functions/v1/directory-api'});assert.equal(response.status,503);assert.equal(calls,0);
+ const response=await worker.fetch(new Request('https://www.id-ebp.org/directory'),{...proxyEnv(),DIRECTORY_API_URL:'https://untrusted.org/functions/v1/directory-api'});assert.equal(response.status,503);assert.equal(calls,0);
 });
 
 test('deadlines cancel stalled response streams, and body limits cancel oversized streams',async()=>{
@@ -92,5 +92,14 @@ test('malformed stored media URLs return a controlled 404 instead of throwing',a
 });
 
 test('HEAD responses omit bodies on machine-readable routes',async()=>{
- for(const path of ['/robots.txt','/sitemap.xml','/catalogue.json','/llms.txt']){const response=await worker.fetch(new Request('https://id-ebp.org'+path,{method:'HEAD'}));assert.equal(response.status,200);assert.equal(await response.text(),'');}
+ for(const path of ['/robots.txt','/sitemap.xml','/catalogue.json','/llms.txt']){const response=await worker.fetch(new Request('https://www.id-ebp.org'+path,{method:'HEAD'}));assert.equal(response.status,200);assert.equal(await response.text(),'');}
+});
+
+test('Cloudflare-compatible manual redirects keep proxy credentials on the configured upstream',async t=>{
+ const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);let redirect=false,calls=0;
+ globalThis.fetch=async(input,options)=>{calls++;assert.equal(input instanceof Request?input.redirect:options.redirect,'manual');return redirect?new Response(null,{status:302,headers:{Location:'https://untrusted.org/'}}):Response.json({authoritative:true,sources:{},user:null});};
+ for(const path of ['/api/community','/api/session','/directory'])assert.equal((await worker.fetch(new Request('https://www.id-ebp.org'+path),proxyEnv())).status,200);
+ redirect=true;
+ for(const path of ['/api/community','/api/session','/directory'])assert.equal((await worker.fetch(new Request('https://www.id-ebp.org'+path),proxyEnv())).status,503);
+ assert.equal(calls,6);
 });

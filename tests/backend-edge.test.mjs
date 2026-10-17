@@ -30,7 +30,7 @@ test('untrusted origins are rejected before any privileged database request',asy
  assert.equal(r.status,403);assert.equal(requests,0);
 });
 test('edge trusts only a checked Worker and forwards the authenticated origin and mail capability',async()=>{
- for(const prefix of ['/directory-api','/functions/v1/directory-api']){const e=wrapper(true);const r=await e.serve(new Request('https://fixture.supabase.co'+prefix+'/api/status',{headers:{Origin:'https://id-ebp.org','X-IDEBP-Proxy-Key':'a'.repeat(48),'X-IDEBP-Mail-Ready':'true','X-IDEBP-Client-IP':'192.0.2.1'}}));assert.equal(r.status,200);assert.equal(e.calls[0].env.AUTH_EMAIL_ENABLED,'true');assert.equal(e.calls[0].env.AUTH_MAIL_TRANSPORT,'worker');assert.equal(e.calls[0].request.url,'https://id-ebp.org/api/status');}
+ for(const prefix of ['/directory-api','/functions/v1/directory-api']){const e=wrapper(true);const r=await e.serve(new Request('https://fixture.supabase.co'+prefix+'/api/status',{headers:{Origin:'https://www.id-ebp.org','X-IDEBP-Proxy-Key':'a'.repeat(48),'X-IDEBP-Mail-Ready':'true','X-IDEBP-Client-IP':'192.0.2.1'}}));assert.equal(r.status,200);assert.equal(e.calls[0].env.AUTH_EMAIL_ENABLED,'true');assert.equal(e.calls[0].env.AUTH_MAIL_TRANSPORT,'worker');assert.equal(e.calls[0].request.url,'https://www.id-ebp.org/api/status');}
  const e=wrapper(true);const r=await e.serve(new Request('https://fixture.supabase.co/directory-api/api/status',{headers:{Origin:'https://attacker.test','X-IDEBP-Proxy-Key':'a'.repeat(48)}}));assert.equal(r.status,403);
 });
 test('only a verified Worker supplies trusted client IP and server-owned Auth forwarding configuration',async()=>{

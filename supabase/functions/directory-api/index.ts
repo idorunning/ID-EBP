@@ -1,7 +1,7 @@
 import {handleApi} from '../../../backend/api.mjs';
 // Only the website Worker may call this API. The database stores a hash of the
 // proxy secret, not its plaintext value. Platform service credentials stay here.
-const origins=new Set(['https://id-ebp.org','https://idebp-preview.ntracey.workers.dev']);
+const origins=new Set(['https://www.id-ebp.org','https://id-ebp.org','https://idebp-preview.ntracey.workers.dev']);
 const reject=(code,status)=>Response.json({error:{code}},{status,headers:{'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
 Deno.serve(async incoming=>{
  const origin=incoming.headers.get('Origin');if(origin&&!origins.has(origin))return reject('origin_denied',403);
