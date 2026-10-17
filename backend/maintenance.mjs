@@ -62,28 +62,59 @@ async function directoryTask(env,action,payload={}){
   return data;
  });
 }
-export async function runDirectoryTasks(env){
- const failures=[];
- try{
-  const tasks=await directoryTask(env,'maintenance-take');
-  // A failed acknowledgement must not prevent other leased work completing.
-  for(const job of (tasks.jobs||[]).slice(0,5)){
-   try{const result=await inspectSource(job);await directoryTask(env,'maintenance-complete',{id:job.id,lease:job.lease,result});}catch(error){failures.push(error);}
-  }
- }catch(error){failures.push(error);}
- if(env.WORKFLOW_NOTIFICATIONS_ENABLED==='true'&&env.EMAIL){
+export async function runDirectoryTasks(env,{maintenance=true,scheduledTime=null,report=()=>{}}={}){
+ const started=Date.now(),failures=[];
+ // Aggregate operational data only: never log addresses, message bodies, source
+ // identifiers, lease tokens or upstream error text.
+ const summary={event:'directory_workflow_run',scheduledTime,status:'ok',durationMs:0,failureCount:0,
+  maintenance:{enabled:maintenance,taken:0,completed:0,failed:0,fullBatch:false,unreachable:0},
+  notifications:{enabled:env.WORKFLOW_NOTIFICATIONS_ENABLED==='true'&&Boolean(env.EMAIL),taken:0,accepted:0,held:0,acknowledgementFailed:0,fullBatch:false,quotaLimited:0,rateLimited:0,configurationError:false,budgetRemaining:null,budgetDeferred:false,pending:null,heldTotal:null,oldestPendingAgeSeconds:null,budgetNextExpiryAt:null}};
+ if(env.WORKFLOW_NOTIFICATIONS_ENABLED==='true'&&!env.EMAIL){summary.notifications.configurationError=true;failures.push(new Error('Workflow email binding unavailable'));}
+ const checkSources=async()=>{
+  if(!maintenance)return;
   try{
-   const batch=await directoryTask(env,'outbox-take');
-   for(const message of (batch.messages||[]).slice(0,10)){
+   const tasks=await directoryTask(env,'maintenance-take'),jobs=(tasks.jobs||[]).slice(0,5);
+   summary.maintenance.taken=jobs.length;summary.maintenance.fullBatch=jobs.length===5;
+   // A failed acknowledgement must not prevent other leased work completing.
+   for(const job of jobs){
+    try{const result=await inspectSource(job);if(result.status==='unreachable')summary.maintenance.unreachable++;await directoryTask(env,'maintenance-complete',{id:job.id,lease:job.lease,result});summary.maintenance.completed++;}
+    catch(error){summary.maintenance.failed++;failures.push(error);}
+   }
+  }catch(error){summary.maintenance.failed++;failures.push(error);}
+ };
+ const sendNotices=async()=>{
+  if(!summary.notifications.enabled)return;
+  try{
+   const batch=await directoryTask(env,'outbox-take'),messages=(batch.messages||[]).slice(0,10);
+   summary.notifications.taken=messages.length;summary.notifications.fullBatch=messages.length===10;
+   // The protected task API exposes aggregate queue/budget health only. Reject
+   // unexpected values rather than copying arbitrary backend data into logs.
+   for(const [field,value] of [['budgetRemaining',batch.budget?.remaining],['pending',batch.health?.pending],['heldTotal',batch.health?.held]]){
+    if(Number.isSafeInteger(value)&&value>=0)summary.notifications[field]=value;
+   }
+   const oldest=typeof batch.health?.oldestPendingAt==='string'?Date.parse(batch.health.oldestPendingAt):NaN;
+   if(Number.isFinite(oldest))summary.notifications.oldestPendingAgeSeconds=Math.max(0,Math.floor((Date.now()-oldest)/1000));
+   const expiry=typeof batch.budget?.nextAvailableAt==='string'?Date.parse(batch.budget.nextAvailableAt):NaN;
+   if(Number.isFinite(expiry))summary.notifications.budgetNextExpiryAt=new Date(expiry).toISOString();
+   summary.notifications.budgetDeferred=summary.notifications.budgetRemaining===0&&summary.notifications.pending>0;
+   for(const message of messages){
     let sent=false,providerId='';
     // Sending is never retried automatically: a timeout may still have delivered
     // the email. The database holds it as uncertain for an administrator.
-    try{const result=await timedOperation(()=>env.EMAIL.send({to:message.to,from:{email:'sign-in@auth.id-ebp.org',name:'ID-EBP'},subject:message.subject,text:message.text}));sent=true;providerId=result?.messageId||result?.id||'';}catch{}
-    try{await directoryTask(env,'outbox-complete',{id:message.id,lease:message.lease,sent,providerId});}catch(error){failures.push(error);}
+    try{const result=await timedOperation(()=>env.EMAIL.send({to:message.to,from:{email:'sign-in@auth.id-ebp.org',name:'ID-EBP'},subject:message.subject,text:message.text}));sent=true;providerId=result?.messageId||result?.id||'';summary.notifications.accepted++;}
+    catch(error){summary.notifications.held++;if(error?.code==='E_DAILY_LIMIT_EXCEEDED')summary.notifications.quotaLimited++;if(error?.code==='E_RATE_LIMIT_EXCEEDED')summary.notifications.rateLimited++;}
+    try{await directoryTask(env,'outbox-complete',{id:message.id,lease:message.lease,sent,providerId});}
+    catch(error){summary.notifications.acknowledgementFailed++;failures.push(error);}
    }
   }catch(error){failures.push(error);}
- }
+ };
+ // Notices should not wait behind slow source websites on half-hourly runs.
+ await Promise.all([checkSources(),sendNotices()]);
+ summary.durationMs=Date.now()-started;summary.failureCount=failures.length;
+ summary.status=failures.length?'failed':summary.notifications.held||summary.notifications.fullBatch||summary.notifications.pending>0||summary.notifications.heldTotal>0||summary.maintenance.unreachable?'attention':'ok';
+ report(summary);
  if(failures.length)throw new AggregateError(failures,'Some directory background tasks could not be completed');
+ return summary;
 }
 export async function serveSourceMedia(slug,kind,community){
  const details=community?.sources?.[slug]?.profile?.publicDetails,url=publicWebUrl(details?.[kind==='logo'?'logoUrl':'portraitUrl']);

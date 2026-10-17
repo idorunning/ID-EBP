@@ -45,7 +45,12 @@ async function processApiResponse(response,request,env,signal){
 }
 
 export default {
-  async scheduled(controller,env,context){context.waitUntil(runDirectoryTasks(env));},
+  async scheduled(controller,env,context){
+    // Use the event's scheduled time, not delivery time, so a delayed trigger
+    // cannot turn a five-minute notice run into an extra source-check batch.
+    const scheduledAt=new Date(controller.scheduledTime),valid=Number.isFinite(scheduledAt.getTime());
+    context.waitUntil(runDirectoryTasks(env,{maintenance:valid&&scheduledAt.getUTCMinutes()%30===0,scheduledTime:valid?scheduledAt.toISOString():null,report:summary=>console.log(JSON.stringify(summary))}));
+  },
   async fetch(request,env={}) {
     const url=new URL(request.url);
     const security={

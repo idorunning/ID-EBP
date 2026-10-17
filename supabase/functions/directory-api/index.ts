@@ -27,5 +27,10 @@ Deno.serve(async incoming=>{
  if(!verified)return reject('proxy_required',403);
  const url=new URL(incoming.url),suffix=url.pathname.replace(/^(?:\/functions\/v1)?\/directory-api(?=\/|$)/,'');
  const request=new Request((origin||'https://id-ebp.org')+(suffix.startsWith('/api/')?suffix:'/api'+suffix)+url.search,incoming);
- return handleApi(request,{SUPABASE_URL:baseUrl,SUPABASE_ANON_KEY:Deno.env.get('SUPABASE_ANON_KEY'),SUPABASE_SERVICE_ROLE_KEY:service,SESSION_SECRET:Deno.env.get('SESSION_SECRET'),AUTH_PASSWORD_IP_LIMIT:Deno.env.get('AUTH_PASSWORD_IP_LIMIT'),AUTH_EMAIL_ENABLED:incoming.headers.get('X-IDEBP-Mail-Ready')==='true'?'true':'false',AUTH_MAIL_TRANSPORT:'worker'},{trustedTask:incoming.headers.get('X-IDEBP-Internal')==='scheduled',clientIp:incoming.headers.get('X-IDEBP-Client-IP')||'unknown'});
+ return handleApi(request,{
+  SUPABASE_URL:baseUrl,SUPABASE_ANON_KEY:Deno.env.get('SUPABASE_ANON_KEY'),SUPABASE_SERVICE_ROLE_KEY:service,SESSION_SECRET:Deno.env.get('SESSION_SECRET'),
+  DIRECTORY_AUTH_SECRET_KEY:Deno.env.get('DIRECTORY_AUTH_SECRET_KEY'),SUPABASE_AUTH_SECRET_KEY:Deno.env.get('SUPABASE_AUTH_SECRET_KEY'),SUPABASE_SECRET_KEYS:Deno.env.get('SUPABASE_SECRET_KEYS'),AUTH_CLIENT_IP_FORWARDING_ENABLED:Deno.env.get('AUTH_CLIENT_IP_FORWARDING_ENABLED'),
+  AUTH_PASSWORD_IP_LIMIT:Deno.env.get('AUTH_PASSWORD_IP_LIMIT'),AUTH_EMAIL_IP_LIMIT:Deno.env.get('AUTH_EMAIL_IP_LIMIT'),AUTH_EMAIL_GLOBAL_LIMIT:Deno.env.get('AUTH_EMAIL_GLOBAL_LIMIT'),AUTH_EMAIL_DAILY_LIMIT:Deno.env.get('AUTH_EMAIL_DAILY_LIMIT'),AUTH_VERIFY_IP_LIMIT:Deno.env.get('AUTH_VERIFY_IP_LIMIT'),
+  AUTH_EMAIL_ENABLED:incoming.headers.get('X-IDEBP-Mail-Ready')==='true'?'true':'false',AUTH_MAIL_TRANSPORT:'worker'
+ },{trustedTask:incoming.headers.get('X-IDEBP-Internal')==='scheduled',clientIp:incoming.headers.get('X-IDEBP-Client-IP')||'unknown',trustedClientIp:true});
 });

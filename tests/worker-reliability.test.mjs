@@ -76,7 +76,7 @@ test('background failures do not strand later jobs or notifications and never re
   acknowledgements.push({action,...body});return Response.json({updated:true},{status:body.id==='first'||body.id==='mail-one'?503:200});
  };
  await assert.rejects(runDirectoryTasks({...proxyEnv(),WORKFLOW_NOTIFICATIONS_ENABLED:'true',EMAIL:{send:async message=>{sent.push(message.to);return {id:'accepted'};}}}),AggregateError);
- assert.deepEqual(acknowledgements.map(x=>x.id),['first','second','mail-one','mail-two']);assert.deepEqual(sent,['one@fixture.test','two@fixture.test']);
+ assert.deepEqual(acknowledgements.filter(x=>x.action==='maintenance-complete').map(x=>x.id),['first','second']);assert.deepEqual(acknowledgements.filter(x=>x.action==='outbox-complete').map(x=>x.id),['mail-one','mail-two']);assert.deepEqual(sent,['one@fixture.test','two@fixture.test']);
 });
 
 
