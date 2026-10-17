@@ -22,6 +22,10 @@ npm test
 
 The build creates a self-contained Cloudflare Worker. Public files contain no service keys or account tokens. Browser sessions use encrypted, HttpOnly cookies.
 
+## Code review and release checks
+
+The [17 October code/security review](docs/audits/2026-10-17-code-review.md) records the tested fixes, ratings and concurrency limitations. The [hosting audit](docs/audits/2026-10-17-hosting.md) records live configuration and the coordinated deployment runbook. GitHub Actions runs the build and tests on Node 22 and 24; this does not deploy the site. Database migrations, the Edge Function and the Worker must be released together after acceptance checks.
+
 ## Project guide
 
 | Location | Purpose |

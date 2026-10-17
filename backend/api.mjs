@@ -23,7 +23,24 @@ function email(value){if(typeof value!=='string'||value.length>254||!/^[^\s@]+@[
 function csrf(request,session){const submitted=request.headers.get('X-CSRF-Token')||'';if(submitted.length!==session.csrf.length||submitted!==session.csrf)fail(403,'csrf_failed','Refresh this page before submitting the change.');}
 function sameOrigin(request){const origin=request.headers.get('Origin');if(origin!==new URL(request.url).origin)fail(403,'origin_denied','Submit changes from this website.');if(request.headers.get('Sec-Fetch-Site')==='cross-site')fail(403,'origin_denied','Submit changes from this website.');}
 function claims(token){try{return JSON.parse(decoder.decode(unb64(token.split('.')[1])));}catch{return {};}}
-function settings(env){const base=String(env.SUPABASE_URL||'').replace(/\/$/,'');const publicKey=env.SUPABASE_PUBLISHABLE_KEY||env.SUPABASE_ANON_KEY;const secret=env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY;return {base,publicKey,secret,sessionSecret:env.SESSION_SECRET||secret,configured:/^https:\/\/[^/]+\.supabase\.co$/.test(base)&&Boolean(publicKey)&&Boolean(secret),emailEnabled:env.AUTH_EMAIL_ENABLED==='true'};}
+function settings(env){
+  const base=String(env.SUPABASE_URL||'').replace(/\/$/,''),publicKey=env.SUPABASE_PUBLISHABLE_KEY||env.SUPABASE_ANON_KEY,secret=env.SUPABASE_SECRET_KEY||env.SUPABASE_SERVICE_ROLE_KEY;
+  const requestedPasswordLimit=Number(env.AUTH_PASSWORD_IP_LIMIT),passwordIpLimit=Number.isInteger(requestedPasswordLimit)&&requestedPasswordLimit>=12&&requestedPasswordLimit<=240?requestedPasswordLimit:12;
+  return {base,publicKey,secret,sessionSecret:env.SESSION_SECRET||secret,configured:/^https:\/\/[^/]+\.supabase\.co$/.test(base)&&Boolean(publicKey)&&Boolean(secret),emailEnabled:env.AUTH_EMAIL_ENABLED==='true',passwordIpLimit};
+}
+
+async function upstreamJson(response){
+  if(response.status===204)return {};
+  const limit=4*1024*1024,reader=response.body?.getReader(),chunks=[];let size=0;
+  const unavailable=()=>fail(503,'service_unavailable','The account service returned an incomplete response. Check the latest status before submitting again.');
+  if(Number(response.headers.get('Content-Length'))>limit){await reader?.cancel();unavailable();}
+  try{
+    if(reader)for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>limit){await reader.cancel();unavailable();}chunks.push(value);}
+  }catch{unavailable();}
+  const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
+  try{const value=JSON.parse(decoder.decode(bytes));if(!value||Array.isArray(value)||typeof value!=='object')throw Error();return value;}
+  catch{if(response.ok)unavailable();return {};}
+}
 
 export async function handleApi(request,env={},context={}){
   const config=settings(env), url=new URL(request.url),path=url.pathname, method=request.method;
@@ -38,7 +55,7 @@ export async function handleApi(request,env={},context={}){
     else if(service&&credential.split('.').length===3)headers.Authorization='Bearer '+credential;
     let response;
     try{response=await fetcher(config.base+path,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});}catch{fail(503,'service_unavailable','The account service is temporarily unavailable. Please try again.');}
-    const data=await response.json().catch(()=>({}));
+    const data=await upstreamJson(response);
     if(!response.ok){
       if(path==='/auth/v1/admin/generate_link'&&[400,404,422].includes(response.status))fail(400,'invalid_details','The account request could not be accepted.');
       if(data.code==='42501'||response.status===403){
@@ -59,6 +76,7 @@ export async function handleApi(request,env={},context={}){
   const rpc=(action,payload={},actor=null)=>upstream('/rest/v1/rpc/directory_api',{p_action:action,p_payload:payload,p_actor:actor?.id||null,p_session:actor?claims(current.access).session_id||null:null,p_assurance:actor?claims(current.access).aal||'aal1':'aal1'},{service:true});
   async function rate(scope,identity,limit,seconds){const digest=await crypto.subtle.digest('SHA-256',encoder.encode('ID-EBP rate v1\0'+config.sessionSecret+'\0'+identity));await rpc('rate_limit',{key:scope+':'+b64(new Uint8Array(digest)),limit,seconds});}
   async function writeSession(data){
+    if(typeof data.access_token!=='string'||!data.access_token||typeof data.refresh_token!=='string'||!data.refresh_token)fail(503,'service_unavailable','The account service returned an incomplete session. Please try again.');
     current={access:data.access_token,refresh:data.refresh_token,expires:Date.now()+(data.expires_in||3600)*1000,csrf:random(),until:Date.now()+604800000};
     responseHeaders.append('Set-Cookie',cookie(SESSION_COOKIE,await seal(current,config.sessionSecret)));
   }
@@ -67,7 +85,12 @@ export async function handleApi(request,env={},context={}){
     current=current||await open(cookies(request)[SESSION_COOKIE],config.sessionSecret);
     if(!current){if(required)fail(401,'sign_in_required','Sign in to contribute.');return null;}
     if(current.expires<Date.now()+30000){
-      try{const refreshed=await upstream('/auth/v1/token?grant_type=refresh_token',{refresh_token:current.refresh});const oldCsrf=current.csrf,recoveryUntil=current.recoveryUntil;await writeSession(refreshed);current.csrf=oldCsrf;current.recoveryUntil=recoveryUntil;responseHeaders.set('Set-Cookie',cookie(SESSION_COOKIE,await seal(current,config.sessionSecret)));}catch(error){responseHeaders.append('Set-Cookie',cookie(SESSION_COOKIE,'',0));throw error;}
+      try{const refreshed=await upstream('/auth/v1/token?grant_type=refresh_token',{refresh_token:current.refresh});const oldCsrf=current.csrf,recoveryUntil=current.recoveryUntil;await writeSession(refreshed);current.csrf=oldCsrf;current.recoveryUntil=recoveryUntil;responseHeaders.set('Set-Cookie',cookie(SESSION_COOKIE,await seal(current,config.sessionSecret)));}catch(error){
+        // A timeout, provider outage or temporary throttle is retryable. Only
+        // discard a browser session when Auth rejects its credentials.
+        if(error instanceof ApiError&&[400,401,403].includes(error.status))responseHeaders.append('Set-Cookie',cookie(SESSION_COOKIE,'',0));
+        throw error;
+      }
     }
     const result=await upstream('/auth/v1/user',undefined,{token:current.access,method:'GET'});
     if(!result.id||!result.email_confirmed_at||result.is_anonymous)fail(403,'email_not_confirmed','Confirm your email before contributing.');
@@ -126,7 +149,7 @@ export async function handleApi(request,env={},context={}){
     }
     if(path==='/api/auth/password'&&method==='POST'){
       const body=await jsonBody(request),address=email(body.email);
-      await rate('password-ip',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',12,600);
+      await rate('password-ip',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',config.passwordIpLimit,600);
       await rate('password-email',address,8,600);
       if(typeof body.password!=='string'||body.password.length>200)fail(400,'invalid_details','Check your sign-in details.');
       const data=await upstream('/auth/v1/token?grant_type=password',{email:address,password:body.password});
@@ -138,6 +161,9 @@ export async function handleApi(request,env={},context={}){
       if(!login||login.email!==address)fail(400,'request_code_first','Request a new code from this browser first.');
       if(typeof body.token!=='string'||!/^\d{6,10}$/.test(body.token))fail(400,'invalid_code','Enter the verification code from your email.');
       await rate('otp-verify',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',20,600);
+      // The mailbox limit is shared with source-claim verification, so changing
+      // IP addresses or switching forms cannot multiply guesses for one code.
+      await rate('mailbox-verify',address,10,600);
       const data=await upstream('/auth/v1/verify',{type:login.type||'email',email:address,token:body.token});
       if(!data.access_token||!data.refresh_token)fail(401,'invalid_code','Request a new verification code.');
       await writeSession(data);user=null;
@@ -146,6 +172,10 @@ export async function handleApi(request,env={},context={}){
       const after=await sessionAfterWrite(data.user);return reply({...after.session,sessionRefreshPending:after.sessionRefreshPending===true,recovery:login.purpose==='reset'});
     }
     const sourceMatch=path.match(/^\/api\/sources\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(community|profile|rating|tags|claim|claim-code|team|invite-editor|accept-editor|revoke-editor)$/);
+    if(sourceMatch&&['team','invite-editor','accept-editor','revoke-editor'].includes(sourceMatch[2])){
+      const allowed=sourceMatch[2]==='team'?'GET':'POST';
+      if(method!==allowed){responseHeaders.set('Allow',allowed);fail(405,'method_not_allowed','This request method is not supported.');}
+    }
     if(sourceMatch&&method==='POST'&&['claim-code','claim'].includes(sourceMatch[2])){
       const [,slug,kind]=sourceMatch,body=await jsonBody(request),address=email(body.email);
       const member=await authenticate(false);if(member)csrf(request,current);
@@ -169,6 +199,7 @@ export async function handleApi(request,env={},context={}){
       const evidence=String(body.evidence||'').trim(),evidenceUrl=String(body.evidenceUrl||'').trim();
       if(evidence.length>2000||evidenceUrl.length>2048||evidenceUrl&&!/^https:\/\/[^\s@]+$/.test(evidenceUrl))fail(400,'invalid_details','Check the optional information.');
       await rate('claim-verify',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',20,600);
+      await rate('mailbox-verify',address,10,600);
       const verified=await upstream('/auth/v1/verify',{type:challenge.type,email:address,token:body.token});
       if(!verified.access_token||!verified.user?.email_confirmed_at||verified.user?.email?.toLowerCase()!==address)fail(400,'invalid_code','The verification code could not be accepted.');
       // Keep an existing administrator/member account when proving a different
@@ -238,7 +269,7 @@ export async function handleApi(request,env={},context={}){
       if(kind==='rating'&&method==='PUT'){const body=await jsonBody(request);if(!Number.isInteger(body.stars)||body.stars<0||body.stars>5)fail(400,'invalid_rating','Choose a whole-star rating from 0 to 5.');return reply(await rpc('rate_source',{slug,stars:body.stars},actor));}
       if(kind==='rating'&&method==='DELETE')return reply(await rpc('remove_rating',{slug},actor));
       if(kind==='tags'&&method==='POST'){const body=await jsonBody(request);return reply(await rpc('suggest_tag',{slug,label:body.label},actor),201);}
-      if(['team','invite-editor','accept-editor','revoke-editor'].includes(kind))return reply(await rpc(kind.replaceAll('-','_'),{...(['POST','DELETE'].includes(method)?await jsonBody(request):{}),slug},actor));
+      if(['team','invite-editor','accept-editor','revoke-editor'].includes(kind))return reply(await rpc(kind.replaceAll('-','_'),{...(method==='POST'?await jsonBody(request):{}),slug},actor));
       if(kind==='profile'&&method==='PATCH')return reply(await rpc('edit_profile',{slug,profile:await jsonBody(request)},actor),202);
     }
     if(path==='/api/admin/people'&&method==='GET')return reply(await rpc('admin_people',{},actor));

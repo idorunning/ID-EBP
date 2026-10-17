@@ -31,3 +31,12 @@ test('failed network and browser storage reports memory-only saves honestly',asy
 test('a failed guest-storage clear does not resurrect an imported source in the same session',async()=>{
  const service=server(),device={getItem:k=>k==='pd-saved'?'["research"]':null,setItem:()=>{throw Error('Storage denied');}},a=new SavedSources({storage:device,request:service.request});await a.setUser({id:'alice'});await a.toggle('research');await a.sync();assert.equal(service.records.get('alice').has('research'),false);assert.equal(service.calls.filter(c=>c.path==='/saved/import').length,1);
 });
+test('guest saves refresh across tabs without needing a sign-in',async()=>{
+ const device=storage(),a=new SavedSources({storage:device}),b=new SavedSources({storage:device});
+ await a.toggle('research');await b.setUser(null);assert.ok(b.ids.has('research'));
+ await b.toggle('research');await a.sync();assert.equal(a.ids.has('research'),false);
+});
+test('a guest refresh keeps memory-only changes when browser storage fails',async()=>{
+ const a=new SavedSources({storage:{getItem:()=>null,setItem:()=>{throw Error('Storage unavailable');}}});
+ await a.toggle('research');await a.sync();assert.ok(a.ids.has('research'));assert.equal(a.status,'storage-error');
+});
