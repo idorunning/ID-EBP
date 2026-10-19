@@ -1,0 +1,544 @@
+{
+  "date": "2026-10-19",
+  "method": "Targeted Firecrawl discovery by platform, source type and native-language terms. Read original source pages and compared with the live catalogue before adding. This was not an exhaustive search or appraisal of underlying studies.",
+  "publication": {
+    "initialBatch": 7,
+    "broaderBatch": 12,
+    "duplicates": "None of the 19 source URLs/organisations were present as equivalent listings in the 115-source baseline. The general BSC blog is distinct from the existing BSC Policing Network blog.",
+    "database": "Published to the existing authoritative catalogue. No source ownership, ratings or provider endorsement added."
+  },
+  "sources": [
+    {
+      "slug": "london-vru-evidence",
+      "name": "London Violence Reduction Unit — Evidence Hub",
+      "website_url": "https://www.london.gov.uk/programmes-strategies/communities-and-social-justice/londons-violence-reduction-unit-vru/our-evidence-and-community-insight/vru-evidence-hub",
+      "canonical_domain": "london.gov.uk",
+      "publisher": "Greater London Authority",
+      "kinds": [
+        "Official",
+        "Research collection"
+      ],
+      "content_types": [
+        "Original research",
+        "Evidence reviews",
+        "Practice examples"
+      ],
+      "topics": [
+        "Violence prevention",
+        "Safeguarding"
+      ],
+      "about": "Searchable collection of research and programme evaluations from London's Violence Reduction Unit covering violence prevention, exploitation, families, education and communities. Individual evaluations differ in method and should be assessed separately.",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "mmu-peru",
+      "name": "Manchester Metropolitan University — Policy Evaluation and Research Unit",
+      "website_url": "https://mmuperu.co.uk/blog/evidence-lab-for-social-interventions-elsie/greater-manchester-violence-reduction-unit-research-and-evaluation-2020-2025-2/",
+      "canonical_domain": "mmuperu.co.uk",
+      "publisher": "Manchester Metropolitan University",
+      "kinds": [
+        "University",
+        "Academic",
+        "Research collection"
+      ],
+      "content_types": [
+        "Original research",
+        "Evidence reviews",
+        "Research summaries"
+      ],
+      "topics": [
+        "Violence prevention",
+        "Crime prevention"
+      ],
+      "about": "University research supporting Greater Manchester's Violence Reduction Unit, including rapid evidence assessments, violence profiles, logic modelling and evaluations of hospital navigators and diversion. The linked overview describes the programme rather than providing a full evaluation report.",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "south-wales-icps",
+      "name": "University of South Wales — International Centre for Policing and Security",
+      "website_url": "https://www.southwales.ac.uk/research/research-and-innovation-groups/criminology-policing-and-security/international-centre-for-policing-and-security-research-group/",
+      "canonical_domain": "southwales.ac.uk",
+      "publisher": "University of South Wales",
+      "kinds": [
+        "University",
+        "Academic"
+      ],
+      "content_types": [
+        "Original research",
+        "Research summaries"
+      ],
+      "topics": [
+        "Leadership",
+        "Investigations",
+        "Technology"
+      ],
+      "about": "University research centre covering policing, legitimacy, organisational practice, police education, terrorism, cybercrime and organised crime. Its website links to projects and academic profiles. Wider security research is distinct from evaluations of policing interventions.",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "keele-kpac",
+      "name": "Keele Policing Academic Collaboration",
+      "website_url": "https://www.keele.ac.uk/kpac/",
+      "canonical_domain": "keele.ac.uk",
+      "publisher": "Keele University",
+      "kinds": [
+        "University",
+        "Academic",
+        "Blog"
+      ],
+      "content_types": [
+        "Original research",
+        "Research summaries",
+        "Commentary"
+      ],
+      "topics": [
+        "Neighbourhood policing",
+        "Leadership"
+      ],
+      "about": "Academic–police collaboration with publications, funded projects and research news on public order, crowd behaviour, police legitimacy and disparities in Taser use. News and project descriptions provide routes to underlying studies and are distinct from completed evaluations.",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "birmingham-ccjp",
+      "name": "University of Birmingham — Centre for Crime, Justice and Policing",
+      "website_url": "https://www.birmingham.ac.uk/research/centres-institutes/crime-justice-and-policing",
+      "canonical_domain": "birmingham.ac.uk",
+      "publisher": "University of Birmingham",
+      "kinds": [
+        "University",
+        "Academic"
+      ],
+      "content_types": [
+        "Original research",
+        "Research summaries"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Leadership",
+        "Investigations"
+      ],
+      "about": "Interdisciplinary university centre working on crime, justice and policing. It supports evaluations, research partnerships, policy engagement and knowledge exchange with practitioners. Its website links to research and researchers.",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "warwick-copr",
+      "name": "University of Warwick — Centre for Operational Policing Research",
+      "website_url": "https://warwick.ac.uk/fac/cross_fac/copr/",
+      "canonical_domain": "warwick.ac.uk",
+      "publisher": "University of Warwick",
+      "kinds": [
+        "University",
+        "Academic",
+        "Blog"
+      ],
+      "content_types": [
+        "Original research",
+        "Research summaries",
+        "Commentary"
+      ],
+      "topics": [
+        "Investigations",
+        "Leadership",
+        "Technology",
+        "Police wellbeing"
+      ],
+      "about": "Interdisciplinary university centre researching policing organisations, investigations, custody, trust, digital forensics and policing technologies. Its website includes research projects and a blog, with work on AI-generated misinformation and police peer support relating to sexual misconduct.",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "empac",
+      "name": "East Midlands Policing Academic Collaboration",
+      "website_url": "https://empac.org.uk/",
+      "canonical_domain": "empac.org.uk",
+      "publisher": "East Midlands Policing Academic Collaboration",
+      "kinds": [
+        "Academic",
+        "Research collection",
+        "Blog"
+      ],
+      "content_types": [
+        "Original research",
+        "Research summaries",
+        "Commentary",
+        "Practice examples"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Neighbourhood policing",
+        "Leadership"
+      ],
+      "about": "Police–academic collaboration connecting research, practitioner learning and problem solving across the East Midlands. Resources cover prevention, diversion, community intelligence and operational practice. Commentary and practice proposals should be distinguished from evaluated findings.",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "status": "published"
+    },
+    {
+      "slug": "stopwatch-newsletter",
+      "name": "StopWatch UK — newsletter",
+      "website_url": "https://stopwatchuk.substack.com/",
+      "canonical_domain": "stopwatchuk.substack.com",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "kinds": [
+        "Independent",
+        "Blog"
+      ],
+      "content_types": [
+        "Research summaries",
+        "Commentary"
+      ],
+      "topics": [
+        "Neighbourhood policing",
+        "Safeguarding",
+        "Leadership"
+      ],
+      "about": "UK newsletter examining stop and search, disproportionate policing, accountability and child-centred policing. It combines research discussion, news and advocacy commentary. Its stated perspective and individual claims should be distinguished from independently evaluated intervention findings.",
+      "status": "published"
+    },
+    {
+      "slug": "john-roman",
+      "name": "External Processing — John K. Roman",
+      "website_url": "https://johnkroman.substack.com/",
+      "canonical_domain": "johnkroman.substack.com",
+      "country_code": "US",
+      "research_languages": [
+        "en"
+      ],
+      "kinds": [
+        "Researcher",
+        "Blog"
+      ],
+      "content_types": [
+        "Research summaries",
+        "Commentary"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Violence prevention"
+      ],
+      "about": "Substack newsletter and podcast discussing crime trends, violence prevention, police productivity and criminal justice policy, mainly in the United States. It connects data and research with public debate; commentary and policy proposals are distinct from evaluated findings.",
+      "status": "published"
+    },
+    {
+      "slug": "mummolo-medium",
+      "name": "Jonathan Mummolo — Medium research commentary",
+      "website_url": "https://medium.com/p/6f66535dc7e5",
+      "canonical_domain": "medium.com",
+      "country_code": "US",
+      "research_languages": [
+        "en"
+      ],
+      "kinds": [
+        "Researcher",
+        "Blog"
+      ],
+      "content_types": [
+        "Commentary",
+        "Research summaries"
+      ],
+      "topics": [
+        "Neighbourhood policing",
+        "Leadership"
+      ],
+      "about": "Historical Medium commentary by Dean Knox and Jonathan Mummolo critiquing research claims about racial bias in policing. The 2020 article discusses methods and interpretation of policing studies. It is a research discussion resource, not a current newsletter or a standalone peer-reviewed evaluation.",
+      "status": "published"
+    },
+    {
+      "slug": "bsc-main-blog",
+      "name": "British Society of Criminology — policing blog articles",
+      "website_url": "https://thebscblog.wordpress.com/category/policing/",
+      "canonical_domain": "thebscblog.wordpress.com",
+      "country_code": "GB",
+      "research_languages": [
+        "en"
+      ],
+      "kinds": [
+        "Professional society",
+        "Blog"
+      ],
+      "content_types": [
+        "Commentary",
+        "Research summaries"
+      ],
+      "topics": [
+        "Neighbourhood policing",
+        "Leadership"
+      ],
+      "about": "Policing articles on the British Society of Criminology's general blog, with research discussion and contributions about police culture, legitimacy, reform and public debate. This collection is separate from its Policing Network blog, already listed in the directory. Posts express their authors' interpretations.",
+      "status": "published"
+    },
+    {
+      "slug": "cody-telep",
+      "name": "Cody W. Telep — publications",
+      "website_url": "https://codywtelep.wordpress.com/publications/",
+      "canonical_domain": "codywtelep.wordpress.com",
+      "country_code": "US",
+      "research_languages": [
+        "en"
+      ],
+      "kinds": [
+        "Researcher",
+        "Academic"
+      ],
+      "content_types": [
+        "Original research",
+        "Evidence reviews"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Neighbourhood policing"
+      ],
+      "about": "WordPress-hosted publication catalogue linking policing studies, systematic reviews and meta-analyses on problem-oriented policing, patrol, procedural justice and crime hot spots. It includes completed publications and in-press work. Some links require publisher or institutional access.",
+      "status": "published"
+    },
+    {
+      "slug": "polizei-newsletter",
+      "name": "Polizei-Newsletter",
+      "website_url": "https://www.polizei-newsletter.de/",
+      "canonical_domain": "polizei-newsletter.de",
+      "country_code": "DE",
+      "research_languages": [
+        "de"
+      ],
+      "kinds": [
+        "Academic",
+        "Blog"
+      ],
+      "content_types": [
+        "Research summaries",
+        "Commentary"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Leadership",
+        "Technology"
+      ],
+      "about": "German-language monthly newsletter summarising research and publications on policing and security. Its searchable archive provides routes to original work. Newsletter summaries are research translation rather than independent intervention evaluations.",
+      "status": "published"
+    },
+    {
+      "slug": "secondant",
+      "name": "Secondant — crime prevention and safety",
+      "website_url": "https://ccv-secondant.nl/",
+      "canonical_domain": "ccv-secondant.nl",
+      "country_code": "NL",
+      "research_languages": [
+        "nl"
+      ],
+      "kinds": [
+        "Independent",
+        "Blog",
+        "Practice collection"
+      ],
+      "content_types": [
+        "Research summaries",
+        "Practice examples",
+        "Commentary"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Neighbourhood policing",
+        "Technology",
+        "Violence prevention"
+      ],
+      "about": "Dutch-language publication sharing research, interviews, professional perspectives and practice examples on crime prevention and social safety. Topics include trust in police, cybercrime, organised crime and violence. The site distinguishes opinion and interviews; underlying studies require separate appraisal.",
+      "status": "published"
+    },
+    {
+      "slug": "notes-seguretat",
+      "name": "Notes de seguretat",
+      "website_url": "https://notesdeseguretat.blog.gencat.cat/",
+      "canonical_domain": "notesdeseguretat.blog.gencat.cat",
+      "country_code": "ES",
+      "research_languages": [
+        "ca",
+        "es",
+        "en",
+        "fr"
+      ],
+      "kinds": [
+        "Official",
+        "Blog"
+      ],
+      "content_types": [
+        "Research summaries",
+        "Practice examples",
+        "Commentary"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Safeguarding",
+        "Technology",
+        "Violence prevention"
+      ],
+      "about": "Public security blog on the Generalitat de Catalunya's website sharing international research, policing developments, interviews and practice material. Posts are available in Catalan, Spanish, English and French. Summaries signpost original sources and do not establish that a reported intervention is effective.",
+      "status": "published"
+    },
+    {
+      "slug": "sochicrim-blog",
+      "name": "Sociedad Chilena de Criminología — research blog",
+      "website_url": "https://sochicrim.hypotheses.org/",
+      "canonical_domain": "sochicrim.hypotheses.org",
+      "country_code": "CL",
+      "research_languages": [
+        "es"
+      ],
+      "kinds": [
+        "Professional society",
+        "Academic",
+        "Blog"
+      ],
+      "content_types": [
+        "Research summaries",
+        "Commentary",
+        "Learning resources"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Violence prevention",
+        "Leadership"
+      ],
+      "about": "Spanish-language research blog of the Chilean Society of Criminology on the Hypotheses platform. It shares academic activities, research discussions and conference material about crime, criminal justice and criminal policy in Chile and Latin America. Events and research announcements are distinct from completed evaluations.",
+      "status": "published"
+    },
+    {
+      "slug": "sou-da-paz",
+      "name": "Instituto Sou da Paz — research and projects",
+      "website_url": "https://soudapaz.org/pesquisa-e-projeto/",
+      "canonical_domain": "soudapaz.org",
+      "country_code": "BR",
+      "research_languages": [
+        "pt"
+      ],
+      "kinds": [
+        "Independent",
+        "Research collection"
+      ],
+      "content_types": [
+        "Original research",
+        "Practice examples",
+        "Commentary"
+      ],
+      "topics": [
+        "Violence prevention",
+        "Investigations",
+        "Crime prevention"
+      ],
+      "about": "Brazilian research and advocacy organisation publishing Portuguese-language work on homicide investigation, firearms, violence prevention and public security policy. Its catalogue includes impact evaluation and diagnostic reports alongside policy proposals; these forms of evidence should be assessed separately.",
+      "status": "published"
+    },
+    {
+      "slug": "ak-polizeiforschung",
+      "name": "Arbeitskreis Empirische Polizeiforschung",
+      "website_url": "https://empirische-polizeiforschung.de/wp/",
+      "canonical_domain": "empirische-polizeiforschung.de",
+      "country_code": "DE",
+      "research_languages": [
+        "de"
+      ],
+      "kinds": [
+        "Academic",
+        "Independent"
+      ],
+      "content_types": [
+        "Original research",
+        "Research summaries",
+        "Learning resources"
+      ],
+      "topics": [
+        "Leadership",
+        "Neighbourhood policing"
+      ],
+      "about": "German-language interdisciplinary forum connecting empirical police researchers and practitioners. Its website provides publications, conference information and research discussions about police organisations and practice. Conference announcements and scholarly discussion are not themselves evidence of intervention effects.",
+      "status": "published"
+    },
+    {
+      "slug": "idb-evidence-platform",
+      "name": "IDB — Security and Justice Evidence Platform",
+      "website_url": "https://plataformadeevidencias.iadb.org/",
+      "canonical_domain": "plataformadeevidencias.iadb.org",
+      "country_code": "US",
+      "research_languages": [
+        "pt",
+        "es"
+      ],
+      "kinds": [
+        "Official",
+        "Research collection",
+        "Practice collection"
+      ],
+      "content_types": [
+        "Evidence reviews",
+        "Research summaries",
+        "Practice examples",
+        "Learning resources"
+      ],
+      "topics": [
+        "Crime prevention",
+        "Violence prevention",
+        "Safeguarding",
+        "Neighbourhood policing"
+      ],
+      "about": "Spanish- and Portuguese-language platform bringing together evidence on security and justice interventions, evaluated cases and learning resources. Topics include policing, urban safety, youth violence and violence against women, with a focus on Latin America and the Caribbean. Follow each entry's original evaluation and evidence criteria.",
+      "status": "published"
+    }
+  ],
+  "additionalRoutes": [
+    {
+      "name": "Griffith Criminology Institute — video channel",
+      "url": "https://www.youtube.com/channel/UCCT23xIu8lL0YRmB2VwJyog/videos",
+      "status": "Search-result lead; institution already listed as griffith; do not create a duplicate organisation."
+    },
+    {
+      "name": "Penn State Evidence-to-Impact — policing/diversion podcast",
+      "url": "https://evidence2impact.psu.edu/resources/episode-25-part-1-bridging-the-gap-community-policings-role-in-recovery-and-crime-reduction/",
+      "status": "Original page read; broader evidence-translation collection with relevant policing audio; not added in this batch."
+    },
+    {
+      "name": "UOC Law, Criminology and Political Science blog",
+      "url": "https://blogs.uoc.edu/edcp/es/",
+      "status": "Original page read; broader university blog, not added pending a more focused policing/criminology collection link."
+    },
+    {
+      "name": "InDret policing commentary",
+      "url": "https://indret.com/para-que-sirve-la-policia-apuntes-desde-la-criminologia/",
+      "status": "Original page read; academic commentary, not added in this batch."
+    }
+  ],
+  "caveats": [
+    "Platform alone does not establish research quality.",
+    "The Medium resource is historical commentary from 2020; it is not described as an active newsletter.",
+    "Advocacy, commentary, research summaries and original research are described separately.",
+    "Collection labels do not grade each study.",
+    "No outreach emails sent, subscriptions purchased or ownership verification granted.",
+    "Automated profile reads can capture the initial loading screen; a five-second render wait loaded the new EMPAC profile correctly."
+  ]
+}
