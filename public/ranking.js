@@ -17,6 +17,7 @@ export function signals(source) {
 export function signalScore(source){return Object.values(signals(source)).reduce((a,b)=>a+b,0);}
 import {INDEX} from './search-index.js';
 import {normalise,queryWords,buildSearchEntry,signature,tokenMatches} from './search.js';
+import {planSearch,identifyTopics} from './search-topics.js';
 export {normalise} from './search.js';
 const cache=new WeakMap();
 function indexed(s){
@@ -26,14 +27,16 @@ function indexed(s){
   cache.set(s,entry);return entry;
 }
 export function searchSources(sources,filters={}) {
-  const words=queryWords(filters.query);
+  const plan=planSearch(filters.query,{exact:filters.exact==='1'});
+  const words=queryWords(plan.exact?filters.query:plan.text);
   return sources.filter(s=>s.status!=='hidden').filter(s=>{
     const entry=indexed(s);
-    return words.every(w=>entry.tokens.some(token=>tokenMatches(token,w)))&&(!filters.based||s.country===filters.based)&&(!filters.country||s.coverage.includes(filters.country))&&(!filters.type||s.types.includes(filters.type))&& (filters.collection!=='resources'||s.types.some(type=>['Research collection','Practice collection','Official','Professional society','Charity','Company','Learning provider'].includes(type)))&&(!filters.content||s.content.includes(filters.content))&&(!filters.access||s.access===filters.access)&&(!filters.language||s.languages.includes(filters.language))&&(!filters.topic||s.topics.includes(filters.topic));
+    const concepts=identifyTopics(Object.values(entry.fields).join(' ')).map(t=>t.id);
+    return plan.topicGroups.every(group=>group.some(id=>concepts.includes(id)))&&words.every(w=>entry.tokens.some(token=>tokenMatches(token,w)))&&(!filters.based||s.country===filters.based)&&(!filters.country||s.coverage.includes(filters.country))&&(!filters.type||s.types.includes(filters.type))&& (filters.collection!=='resources'||s.types.some(type=>['Research collection','Practice collection','Official','Professional society','Charity','Company','Learning provider'].includes(type)))&&(!filters.content||s.content.includes(filters.content))&&(!filters.access||s.access===filters.access)&&(!filters.language||s.languages.includes(filters.language))&&(!filters.topic||s.topics.includes(filters.topic));
   }).map(s=>{
     const f=indexed(s).fields;
     const inField=(field,w)=>queryWords(field).some(token=>tokenMatches(token,w));
-    const matches=words.reduce((n,w)=>n+(inField(f.name,w)?25:inField(f.owner,w)?22:inField(f.topics,w)?15:inField(f.aliases,w)?12:5),0);
+    const matches=words.reduce((n,w)=>n+(inField(f.name,w)?25:inField(f.owner,w)?22:inField(f.topics,w)?15:inField(f.aliases,w)?12:5),0)+plan.topics.length*15;
     return {...s,matchScore:matches,matchFields:words.length?Object.entries(f).filter(([,value])=>words.some(w=>inField(value,w))).map(([key])=>key):[],signalScore:signalScore(s)};
   }).sort((a,b)=>filters.sort==='name'?a.name.localeCompare(b.name):filters.sort==='country'?a.country.localeCompare(b.country)||a.name.localeCompare(b.name):filters.sort==='rating'?ratingScore(b)-ratingScore(a)||b.matchScore-a.matchScore||a.name.localeCompare(b.name):b.matchScore-a.matchScore||b.signalScore-a.signalScore||a.name.localeCompare(b.name));
 }

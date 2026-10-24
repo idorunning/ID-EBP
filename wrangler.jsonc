@@ -4,6 +4,7 @@
   "main": "dist/worker.mjs",
   "compatibility_date": "2026-10-14",
   "workers_dev": true,
+  "ai": {"binding":"AI"},
   "routes": [
     {"pattern": "id-ebp.org", "custom_domain": true},
     {"pattern": "www.id-ebp.org", "custom_domain": true}

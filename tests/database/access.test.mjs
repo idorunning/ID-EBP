@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { SOURCES } from '../../public/data.js';
-import { PGlite } from '@electric-sql/pglite';
+import {PGlite} from '../helpers/database.mjs';
 
 // All identities and addresses below are disposable local fixtures, never seeds.
 const users={member:'00000000-0000-4000-8000-000000000001',manager:'00000000-0000-4000-8000-000000000002',admin:'00000000-0000-4000-8000-000000000003',secondAdmin:'00000000-0000-4000-8000-000000000004'};
