@@ -12,3 +12,5 @@ __pycache__/
 supabase/.temp/
 
 /node_modules
+
+/research/import-batches/

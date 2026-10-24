@@ -1,3 +1,4 @@
+import {handleResearch} from '../backend/research.mjs';
 import {runDirectoryTasks,serveSourceMedia,timedOperation,boundedBody,directoryEndpoint} from '../backend/maintenance.mjs';
 import {ASSETS} from './assets.generated.mjs';
 import {handleApi} from '../backend/api.mjs';
@@ -69,6 +70,7 @@ export default {
       url.port='';
       return new Response(null,{status:308,headers:{...security,Location:url.href,'Cache-Control':'public, max-age=3600'}});
     }
+    if(['/api/research','/api/research/tags','/api/research/stats'].includes(url.pathname))return handleResearch(request,security);
     if(url.pathname.startsWith('/api/internal/'))return new Response('Not found',{status:404,headers:{...security,'Cache-Control':'no-store'}});
     if(url.pathname.startsWith('/api/')){
       try{
