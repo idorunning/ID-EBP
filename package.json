@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "International Directory of Evidence-Based Policing — independent source discovery",
+  "description": "International Directory of Evidence-Based Policing \u2014 independent source discovery",
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
     "test": "npm run build && node --test tests/*.test.mjs tests/database/*.test.mjs",
     "test:database": "node --test tests/database/*.test.mjs",
-    "db:seed": "node scripts/build-seed.mjs"
+    "db:seed": "node scripts/build-seed.mjs",
+    "dev:catalogue": "npm run build && node scripts/serve-worker.mjs"
   },
   "engines": {
     "node": ">=22"

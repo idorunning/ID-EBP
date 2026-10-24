@@ -80,3 +80,7 @@ The single completion checklist is https://chatgpt.com/space/page_ff709a19959081
 Imported on 17 October 2026 from `idorunning/international_ebp-directory` at commit `bfd20b39a4613b7c3677e853a65adfa16c294677`, including the source-change submission confirmation. Existing folders and relative paths are preserved. The import passed the build and all 95 automated tests.
 
 This repository contains application source and public assets, not production account data or runtime secrets. Copying the code does not change the live hosting connection or migrate the production database.
+
+### Individual research catalogue
+
+The `/research` page adds discovery search across the checkpoint-32 research/resource catalogue, separately from the existing source directory. It uses stable workbook record IDs, server-side pagination, selectable catalogue terms and clear pending-appraisal/access labels. See [research/README.md](research/README.md) for snapshot provenance, refresh instructions, source-visibility behaviour, validation limits and the Stage 2 resume position. The research master is unchanged and Stage 3 has not started.

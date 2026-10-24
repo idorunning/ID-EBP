@@ -1,0 +1,16 @@
+[
+  {
+    "recordIds": ["IDEBP-R16654", "IDEBP-R16671"],
+    "type": "Article and correction",
+    "basis": "Publisher-linked correction recorded and checked in workbook checkpoint 32.",
+    "note": "R16654 is the original article, first published online 2 August 2025, with an August 2026 issue date. R16671 is the correction dated 25 April 2026. The correction is not an independent study.",
+    "inferred": false
+  },
+  {
+    "recordIds": ["IDEBP-R16664", "IDEBP-R16665"],
+    "type": "Related conference abstracts",
+    "basis": "Matching authors, title, scope and overlapping abstracts; inference recorded in workbook checkpoint 32.",
+    "note": "Inferred to report the same scoping-review work at the Stockholm Criminology Symposium (9–11 June 2025) and Nordic Police Research Seminar in Malmö (19–21 August 2025). No formal version relationship or identical-file relationship is established. Do not count these as independent studies.",
+    "inferred": true
+  }
+]

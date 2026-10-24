@@ -2,6 +2,8 @@ import {runDirectoryTasks,serveSourceMedia,timedOperation,boundedBody,directoryE
 import {ASSETS} from './assets.generated.mjs';
 import {handleApi} from '../backend/api.mjs';
 import {publicDocument,catalogueFromCommunity,sitemap} from '../backend/seo.mjs';
+import {searchResearch,suggestResearchTerms} from '../backend/research.mjs';
+import {RESEARCH_DATA,RESEARCH_INDEX} from './research.generated.mjs';
 import {CATALOGUE} from './catalogue.generated.mjs';
 
 // Share only simultaneous anonymous catalogue reads. No member response, cookie,
@@ -70,6 +72,18 @@ export default {
       return new Response(null,{status:308,headers:{...security,Location:url.href,'Cache-Control':'public, max-age=3600'}});
     }
     if(url.pathname.startsWith('/api/internal/'))return new Response('Not found',{status:404,headers:{...security,'Cache-Control':'no-store'}});
+    if(url.pathname==='/api/research'){
+      const headers={...security,'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'};
+      if(!['GET','HEAD'].includes(request.method))return Response.json({error:'This catalogue is read-only.'},{status:405,headers:{...headers,Allow:'GET, HEAD'}});
+      try{
+        const community=env.DIRECTORY_API_URL?await readCommunity(env):null;
+        // Fail closed if the production authority cannot confirm visibility.
+        if(env.DIRECTORY_API_URL&&!community?.authoritative)throw Error('Source visibility unavailable');
+        const visible=new Set(catalogueFromCommunity(CATALOGUE,community).map(s=>s.id));
+        const result=url.searchParams.has('suggest')?suggestResearchTerms(RESEARCH_DATA,url.searchParams,visible):searchResearch(RESEARCH_DATA,RESEARCH_INDEX,url.searchParams,visible);
+        return new Response(request.method==='HEAD'?null:JSON.stringify(result),{headers});
+      }catch(error){return Response.json({error:error instanceof RangeError?error.message:'The research catalogue is temporarily unavailable. Please try again shortly.'},{status:error instanceof RangeError?400:503,headers});}
+    }
     if(url.pathname.startsWith('/api/')){
       try{
         let response;

@@ -12,3 +12,6 @@ __pycache__/
 supabase/.temp/
 
 /node_modules
+
+# Human-readable export is generated locally; the deterministic gzip is the release input.
+/research/catalogue.json
