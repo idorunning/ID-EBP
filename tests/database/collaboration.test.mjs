@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
+import {PGlite} from '../helpers/database.mjs';
 
 const ids={member:'10000000-0000-4000-8000-000000000001',owner:'10000000-0000-4000-8000-000000000002',other:'10000000-0000-4000-8000-000000000003',admin:'10000000-0000-4000-8000-000000000004',unconfirmed:'10000000-0000-4000-8000-000000000005'};
 const session=id=>id.replace(/^1/,'2');

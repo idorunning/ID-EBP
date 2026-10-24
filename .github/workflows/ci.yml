@@ -50,7 +50,7 @@ jobs:
       - name: Install official Ubuntu PostgreSQL packages
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends --yes postgresql-16 postgresql-client-16
+          sudo apt-get install --no-install-recommends --yes postgresql-16 postgresql-client-16 postgresql-16-pgvector postgresql-contrib
       - name: Exercise independent sessions and synthetic backup restore
         env:
           ID_EBP_POSTGRES_BIN: /usr/lib/postgresql/16/bin

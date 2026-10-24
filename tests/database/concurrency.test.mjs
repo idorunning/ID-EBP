@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
+import {PGlite} from '../helpers/database.mjs';
 
 // PGlite exercises real PostgreSQL transactions, constraints and procedures.
 // It has one connection: these are deterministic overlap/idempotency regressions,

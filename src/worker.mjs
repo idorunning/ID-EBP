@@ -1,4 +1,4 @@
-import {handleResearch} from '../backend/research.mjs';
+import {handleResearch,runResearchIndex,authorisedResearchIndex} from '../backend/research.mjs';
 import {runDirectoryTasks,serveSourceMedia,timedOperation,boundedBody,directoryEndpoint} from '../backend/maintenance.mjs';
 import {ASSETS} from './assets.generated.mjs';
 import {handleApi} from '../backend/api.mjs';
@@ -51,6 +51,7 @@ export default {
     // cannot turn a five-minute notice run into an extra source-check batch.
     const scheduledAt=new Date(controller.scheduledTime),valid=Number.isFinite(scheduledAt.getTime());
     context.waitUntil(runDirectoryTasks(env,{maintenance:valid&&scheduledAt.getUTCMinutes()%30===0,scheduledTime:valid?scheduledAt.toISOString():null,report:summary=>console.log(JSON.stringify(summary))}));
+    if(env.AI)context.waitUntil(runResearchIndex(env).then(r=>console.log(JSON.stringify({event:'research_index',completed:r.completed}))).catch(()=>console.log(JSON.stringify({event:'research_index',status:'retry'}))));
   },
   async fetch(request,env={}) {
     const url=new URL(request.url);
@@ -70,7 +71,10 @@ export default {
       url.port='';
       return new Response(null,{status:308,headers:{...security,Location:url.href,'Cache-Control':'public, max-age=3600'}});
     }
-    if(['/api/research','/api/research/tags','/api/research/stats'].includes(url.pathname))return handleResearch(request,security);
+    if(['/api/research','/api/research/tags','/api/research/stats'].includes(url.pathname))return handleResearch(request,security,env);
+    if(url.pathname==='/api/internal/research-index'&&await authorisedResearchIndex(request,env)){
+      try{return Response.json(await runResearchIndex(env,{batches:4}),{headers:{...security,'Cache-Control':'no-store'}});}catch{return Response.json({error:'Indexing will retry'},{status:503,headers:{...security,'Cache-Control':'no-store'}});}
+    }
     if(url.pathname.startsWith('/api/internal/'))return new Response('Not found',{status:404,headers:{...security,'Cache-Control':'no-store'}});
     if(url.pathname.startsWith('/api/')){
       try{

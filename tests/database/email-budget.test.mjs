@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
-import {PGlite} from '@electric-sql/pglite';
+import {PGlite} from '../helpers/database.mjs';
 
 test('email reservations enforce independent rolling provider budgets',async t=>{
  const db=new PGlite();await db.waitReady;t.after(()=>db.close());
