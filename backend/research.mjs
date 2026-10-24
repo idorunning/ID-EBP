@@ -42,7 +42,7 @@ export async function handleResearch(request,security={},env={}){
   if(!reply.ok)throw Error('Catalogue unavailable');
   let data=await reply.json();
   if(route==='search_research_v2')data={...data,interpretation:{exact:plan.exact,corrected:plan.corrected,corrections:plan.corrections,topics:plan.topics.map(({id,label})=>({id,label})),intents:plan.intents.map(({id,label})=>({id,label})),related:plan.related,suggestions:plan.suggestions},semanticAvailable:Boolean(body.query_embedding)&&data.semanticAvailable===true};
-  if(route==='research_tags')data=[...new Map([...topicSuggestions(p.get('q')||''),...data].map(t=>[t.tag.toLowerCase(),t])).values()].slice(0,12);
+  if(route==='research_tags')data=[...new Map([...topicSuggestions(p.get('q')||''),...(plan.topics.length?[]:data)].map(t=>[t.tag.toLowerCase(),t])).values()].slice(0,12);
   return new Response(request.method==='HEAD'?null:JSON.stringify(data),{headers:{...security,'Content-Type':'application/json; charset=utf-8','Cache-Control':'public, max-age=60'}});
  }catch{return Response.json({error:'Research search is temporarily unavailable. Please try again.'},{status:503,headers:{...security,'Cache-Control':'no-store'}});}
 }

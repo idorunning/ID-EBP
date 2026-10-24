@@ -4,7 +4,7 @@ import {planSearch,topicSuggestions,SEARCH_TOPICS} from '../public/search-topics
 import {searchSources} from '../public/ranking.js';
 import {researchSearchBody,handleResearch,runResearchIndex,authorisedResearchIndex} from '../backend/research.mjs';
 import {handleResearchIndexer} from '../backend/research-indexer.mjs';
-import {interpretationHtml,researchCard} from '../public/research.js';
+import {interpretationHtml,researchCard,queryAfterTopicSuggestion} from '../public/research.js';
 
 test('shared dictionary has valid unique topics and reciprocal references to existing subjects',()=>{
  const ids=new Set(SEARCH_TOPICS.map(t=>t.id));assert.equal(ids.size,SEARCH_TOPICS.length);
@@ -22,15 +22,29 @@ test('questions, topic suggestions, quotes and exact mode retain user control',(
  assert.equal(planSearch('DA',{exact:true}).topics.length,0);assert.equal(planSearch('"domestic violence"').exact,true);
  assert.equal(planSearch('burglary OR robbery').exact,true);assert.equal(planSearch('burglary -robbery').exact,true);
  assert.ok(topicSuggestions('DV').some(t=>t.topic==='domestic-abuse'));assert.ok(topicSuggestions('burgu').some(t=>t.topic==='burglary'));
+ assert.deepEqual(planSearch('domestic burglary').topics.map(t=>t.id),['residential-burglary']);
 });
 test('source directory uses the same topics and preserves hard filters',()=>{
  const base={status:'published',name:'Test',about:'',url:'https://fixture.test',owner:'',topics:[],searchTerms:[],communityTags:[],country:'United Kingdom',coverage:['United Kingdom'],types:['University'],content:['Research'],languages:['English'],access:'Free'};
  const sources=[{...base,id:'abuse',about:'Research on intimate partner violence.'},{...base,id:'burglary',about:'Research on domestic burglary.'}];
  assert.deepEqual(searchSources(sources,{query:'DA'}).map(s=>s.id),['abuse']);assert.equal(searchSources(sources,{query:'DA',country:'France'}).length,0);assert.deepEqual(searchSources(sources,{query:'domestic burglary'}).map(s=>s.id),['burglary']);
 });
+test('choosing a suggested topic retains the question and additional search context',()=>{
+ assert.equal(queryAfterTopicSuggestion('how to reduce domestic violence'),'how to reduce domestic violence');
+ assert.equal(queryAfterTopicSuggestion('burglary in London'),'burglary in London');
+ assert.equal(queryAfterTopicSuggestion('"domestic violence"'),'"domestic violence"');
+ assert.equal(queryAfterTopicSuggestion('DA'),'');assert.equal(queryAfterTopicSuggestion('burgu'),'');
+});
+test('recognised acronym suggestions exclude unrelated substring tags',async()=>{
+ const original=global.fetch;global.fetch=async()=>Response.json([{tag:'data'},{tag:'databases'},{tag:'anbragte børn i danmark'}]);
+ try{const data=await (await handleResearch(new Request('https://www.id-ebp.org/api/research/tags?q=DA'))).json();
+ assert.ok(data.some(t=>t.topic==='domestic-abuse'));assert.ok(!data.some(t=>t.tag==='data'||t.tag==='databases'||t.tag.includes('danmark')));
+ }finally{global.fetch=original;}
+});
 test('markup escapes interpretation and inferred search topics',()=>{
  const html=interpretationHtml({interpretation:{topics:[{label:'<img src=x>'}],corrections:[],intents:[],related:[]}},'test');assert.ok(!html.includes('<img'));assert.ok(html.includes('&lt;img'));
  assert.ok(!researchCard({title:'Safe',url:'javascript:alert(1)',search_topics:['<script>'],tags:[]},new Set()).includes('href="javascript:'));
+ assert.ok(!researchCard({title:'Safe',summary:'Publisher-listed resource. Metadata recorded for discovery; independent evidence appraisal pending.',tags:[]},new Set()).includes('research-summary'));
 });
 test('AI failure retains keyword/topic results, exact mode never calls AI',async()=>{
  const original=global.fetch;let calls=0;

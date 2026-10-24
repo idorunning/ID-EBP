@@ -12,7 +12,7 @@ A visitor can enter a topic, acronym, spelling variant or question. The same dic
 
 ## Data and maintenance
 
-`public/search-topics.js` is authoritative. Run `node scripts/sync-search-topics.mjs` when preparing the initial seed; subsequent dictionary edits must have a new migration and a bounded reindex. The test suite checks seed consistency. Curated record tags and original summaries are not overwritten. Search-only topics are inferred from available text; inventory placeholders and known sign-in boilerplate are excluded.
+`public/search-topics.js` is authoritative. For subsequent dictionary edits, create a new migration with `-- BEGIN GENERATED TOPICS` and `-- END GENERATED TOPICS` marker lines, then run `node scripts/sync-search-topics.mjs`. The script targets the latest seed block and preserves earlier applied migrations. Apply the new migration and run a bounded reindex. The test suite checks seed consistency. Curated record tags and original summaries are not overwritten. Search-only topics are inferred from available text; inventory placeholders, generic provenance statements and known sign-in boilerplate are excluded. Unambiguous record abbreviations such as IPV and named programmes such as DA Matters are indexed; ambiguous DA/DV query aliases do not classify arbitrary catalogue text.
 
 `research_search_documents` has English full-text, literal, topic and 384-dimensional vector representations. The model is `@cf/baai/bge-small-en-v1.5`, explicitly using `cls` pooling. Both indexing and querying use that exact combination. Input is limited to 1,600 characters from public title/tags/related terms/usable summary. This first model is English-oriented; multilingual semantic coverage is not claimed.
 
@@ -27,5 +27,7 @@ Search queries use a bounded in-memory embedding cache and a per-isolate request
 ## Validation
 
 The local suite covers expected topic recall and exclusions, question intent, source/tag constraints, genuine vector retrieval with controlled fixtures, exact searches, anonymous write denial, stale-lease protection, pagination, existing account workflows and injected markup. Test fixtures are synthetic; live catalogue checks are recorded separately when released.
+
+Release checks on 24 October 2026: all 195 local tests passed, the built Worker passed Node syntax validation, and the production dependency audit found no vulnerabilities. The live lexical index covers 17,080 records and 48 topics. Direct topic matching includes 467 domestic-abuse-group records and 114 burglary-group records. Browser checks verified acronym and typo interpretation, prevention-question ordering, exact-word mode, source filtering, removable topics, and retaining a full question when selecting a suggestion. Final semantic coverage and CI results are recorded in pull request #6.
 
 No new account/member data is indexed. Research quality, original full-text access and metadata completeness remain separate catalogue tasks.

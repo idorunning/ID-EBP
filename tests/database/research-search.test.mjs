@@ -7,7 +7,7 @@ import {researchSearchBody} from '../../backend/research.mjs';
 export async function searchFixture(){
  const db=new PGlite();await db.waitReady;
  await db.exec(`create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema private;grant usage on schema private,public to service_role;grant usage on schema public to anon,authenticated;alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
- for(const file of ['20261024020000_research_catalogue.sql','20261024020430_topic_hybrid_search.sql','20261024022002_improve_search_relevance.sql'])await db.exec(await readFile(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['20261024020000_research_catalogue.sql','20261024020430_topic_hybrid_search.sql','20261024022002_improve_search_relevance.sql','20261024023325_refine_search_catalogue_text.sql'])await db.exec(await readFile(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
  const fixtures=[
  ['da','Domestic violence prevention','Programmes to reduce repeated assaults.',['domestic abuse'],'alpha'],
  ['ipv','Intimate partner violence','Evaluation of an intervention to reduce abuse.',['partner violence'],'alpha'],
@@ -48,6 +48,12 @@ test('topic and meaning search retrieves expected records while retaining bounda
  assert.equal((await search(db,'DA',{exact:'1'})).total,0);
  assert.deepEqual((await search(db,'"domestic violence"')).results.map(r=>r.id),['da']);
  assert.equal((await search(db,'inventory record')).total,0);
+ });
+ await t.test('sparse acronym records match their subject without matching unrelated words',async()=>{
+ await db.query("insert into public.research_records(id,source,source_slug,title,url,summary) values ('acronym-ipv','alpha','alpha','Responding to IPV','https://fixture.test/ipv','Public repository metadata entry. Eligibility and the underlying publication have not been verified.'),('acronym-da','alpha','alpha','DA Matters: Police responders training initial report','https://fixture.test/da','Publisher-listed resource. Metadata recorded for discovery; independent evidence appraisal pending.'),('data','alpha','alpha','Data analysis','https://fixture.test/data','')");
+ const ids=(await search(db,'domestic')).results.map(r=>r.id);assert.ok(ids.includes('acronym-ipv'));assert.ok(ids.includes('acronym-da'));assert.ok(!ids.includes('data'));
+ const indexed=(await db.query("select embedding_text from public.research_search_documents where record_id in ('acronym-ipv','acronym-da')")).rows;
+ assert.ok(indexed.every(r=>!r.embedding_text.includes('Metadata recorded')&&!r.embedding_text.includes('metadata entry')));
  });
  await t.test('meaning results are genuine stored vectors and cannot bypass filters',async()=>{
  const vector=Array(384).fill(0);vector[0]=1;
