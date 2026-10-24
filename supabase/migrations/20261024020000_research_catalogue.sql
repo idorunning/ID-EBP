@@ -26,7 +26,7 @@ returns jsonb language sql stable security invoker set search_path='' as $$
  select r.*, case when length(trim(q))>0 then ts_rank_cd(search_vector,websearch_to_tsquery('simple',left(q,300))) else 0 end as relevance
  from public.research_records r
  where (length(trim(q))=0 or search_vector @@ websearch_to_tsquery('simple',left(q,300)) or to_tsvector('simple',array_to_string(tags,' ')) @@ websearch_to_tsquery('simple',left(q,300)))
- and tags @> selected_tags
+ and not exists (select 1 from unnest(selected_tags) chosen where not exists (select 1 from unnest(r.tags) actual where lower(actual)=lower(chosen)))
  and (source_filter='' or source_slug=source_filter)
  ), results as (
  select id,source,source_slug,title,url,authors,publication,kind,summary,access,status,checked,tags
@@ -36,9 +36,9 @@ $$;
 create or replace function public.research_tags(prefix text default '')
 returns jsonb language sql stable security invoker set search_path='' as $$
  select coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) from (
- select tag,count(*) as count from public.research_records r cross join lateral unnest(r.tags) tag
+ select lower(tag) as tag,count(distinct r.id) as count from public.research_records r cross join lateral unnest(r.tags) tag
  where length(tag)<100 and (prefix='' or position(lower(left(prefix,100)) in lower(tag))>0)
- group by tag order by count(*) desc,tag limit 12) t;
+ group by lower(tag) order by case when prefix='' then coalesce(array_position(array['hot spots policing','body-worn cameras','domestic abuse','procedural justice','problem-oriented policing','crime prevention','neighbourhood policing','police wellbeing','community policing','use of force'],lower(tag)),999) else 0 end,count(distinct r.id) desc,lower(tag) limit 12) t;
 $$;
 revoke all on function public.search_research(text,text[],integer,text) from public;
 revoke all on function public.research_tags(text) from public;
