@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handleResearch} from '../backend/research.mjs';
-import {researchPage,researchForm} from '../public/research.js';
+import {researchPage,researchForm,bindResearch} from '../public/research.js';
 
 test('research endpoint enforces read-only and bounded searches before upstream access',async()=>{
  assert.equal((await handleResearch(new Request('https://www.id-ebp.org/api/research',{method:'POST'}))).status,405);
@@ -26,4 +26,11 @@ test('research form escapes catalogue inputs and retains no-sign-in search actio
  const html=researchForm('\"><img src=x onerror=alert(1)>');
  assert.ok(!html.includes('<img'));assert.match(html,/action="\/research"/);
  assert.match(researchPage(new URLSearchParams(),[]),/Independent appraisal/);
+});
+
+test('homepage search navigates through JavaScript under the site form-action CSP and removes its listener',()=>{
+ const oldDocument=global.document,oldWindow=global.window;let handler,target,prevented=false,removed=false;
+ const form={querySelector:()=>({value:'  body worn cameras  '}),addEventListener:(type,fn)=>{assert.equal(type,'submit');handler=fn;},removeEventListener:(type,fn)=>{assert.equal(type,'submit');assert.equal(fn,handler);removed=true;}};
+ global.document={getElementById:id=>id==='research-form'?form:null};global.window={location:{assign:url=>{target=url;}}};
+ try{const dispose=bindResearch({params:new URLSearchParams()});handler({preventDefault:()=>{prevented=true;}});assert.equal(prevented,true);assert.equal(target,'/research?q=body+worn+cameras');dispose();assert.equal(removed,true);}finally{global.document=oldDocument;global.window=oldWindow;}
 });
