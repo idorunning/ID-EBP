@@ -105,9 +105,17 @@ export function planSearch(query,{exact=false}={}){
  return {version:TOPIC_VERSION,original,corrected,exact:literal,corrections,topics,topicGroups,terms,intents:intents.map(({id,label,terms})=>({id,label,terms})),related,suggestions,
   text:literal?original:terms.join(' '),semanticText:topics.length?[...topics.map(t=>t.label),...intents.map(i=>i.label),...terms].join(' '):corrected};
 }
+// Match a keyword at a word boundary: "dom" can find "domestic", not "randomised".
+export function keywordPrefixScore(value,query){
+ const text=normaliseSearch(value),prefix=normaliseSearch(query);
+ if(!prefix)return 1;
+ if(text===prefix)return 4;
+ if(text.startsWith(prefix))return 3;
+ return text.includes(' '+prefix)?2:0;
+}
 export function topicSuggestions(query){
  const plan=planSearch(query),prefix=plan.corrected;
  const direct=plan.topics.map(t=>byId.get(t.id));
- const found=SEARCH_TOPICS.filter(t=>[...t.aliases,...(t.queryAliases||[])].some(a=>{const term=normaliseSearch(a);return term.includes(prefix)||(prefix.length>=4&&prefix.length<=term.length&&distance(prefix,term.slice(0,prefix.length))<=1);}));
+ const found=SEARCH_TOPICS.map(t=>({topic:t,score:Math.max(keywordPrefixScore(t.label,prefix)*10,...[...t.aliases,...(t.queryAliases||[])].map(a=>{const term=normaliseSearch(a);return keywordPrefixScore(term,prefix)||(prefix.length>=4&&prefix.length<=term.length&&distance(prefix,term.slice(0,prefix.length))<=1?1:0);} ))})).filter(t=>t.score>0).sort((a,b)=>b.score-a.score).map(t=>t.topic);
  return [...new Map([...direct,...(prefix?found:SEARCH_TOPICS.filter(t=>['domestic-abuse','burglary','hot-spots','body-worn-cameras','neighbourhood-policing','police-wellbeing'].includes(t.id)))].map(t=>[t.id,{tag:t.label.toLowerCase(),topic:t.id}])).values()].slice(0,8);
 }

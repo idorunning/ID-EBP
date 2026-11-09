@@ -41,6 +41,26 @@ test('recognised acronym suggestions exclude unrelated substring tags',async()=>
  assert.ok(data.some(t=>t.topic==='domestic-abuse'));assert.ok(!data.some(t=>t.tag==='data'||t.tag==='databases'||t.tag.includes('danmark')));
  }finally{global.fetch=original;}
 });
+test('partial keywords rank direct labels first and never match the middle of a word',async()=>{
+ assert.equal(topicSuggestions('dom')[0].topic,'domestic-abuse');
+ assert.ok(!topicSuggestions('dom').some(t=>t.topic==='randomised-trials'));
+ assert.equal(topicSuggestions('burgl')[0].topic,'burglary');
+ const original=global.fetch;global.fetch=async()=>Response.json([{tag:'randomised experiment'},{tag:'domestic violence courts'},{tag:'domestic abuse'}]);
+ try{const data=await (await handleResearch(new Request('https://www.id-ebp.org/api/research/tags?q=dom'))).json();
+ assert.equal(data[0].topic,'domestic-abuse');assert.ok(!data.some(t=>t.tag==='randomised experiment'));assert.ok(data.some(t=>t.tag==='domestic violence courts'));
+ }finally{global.fetch=original;}
+});
+test('advanced years are validated before RPC and forwarded without changing query semantics',async()=>{
+ const original=global.fetch;const calls=[];global.fetch=async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return Response.json({total:0,results:[]});};
+ try{
+ for(const query of ['yearFrom=abc','yearFrom=999','yearTo=2101','yearTo=2026x','yearFrom=2025&yearTo=2020'])assert.equal((await handleResearch(new Request('https://www.id-ebp.org/api/research?'+query))).status,400);
+ assert.equal(calls.length,0);
+ await handleResearch(new Request('https://www.id-ebp.org/api/research?q=DA&yearFrom=2010&yearTo=2026'));
+ assert.deepEqual(calls[0].body.search_plan.filters,{yearFrom:2010,yearTo:2026});assert.equal(calls[0].body.q,'DA');
+ await handleResearch(new Request('https://www.id-ebp.org/api/research/filters'));
+ assert.match(calls[1].url,/\/rpc\/research_filters$/);assert.deepEqual(calls[1].body,{});
+ }finally{global.fetch=original;}
+});
 test('markup escapes interpretation and inferred search topics',()=>{
  const html=interpretationHtml({interpretation:{topics:[{label:'<img src=x>'}],corrections:[],intents:[],related:[]}},'test');assert.ok(!html.includes('<img'));assert.ok(html.includes('&lt;img'));
  assert.ok(!researchCard({title:'Safe',url:'javascript:alert(1)',search_topics:['<script>'],tags:[]},new Set()).includes('href="javascript:'));
