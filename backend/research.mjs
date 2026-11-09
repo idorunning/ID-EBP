@@ -1,4 +1,4 @@
-import {planSearch,topicSuggestions} from '../public/search-topics.js';
+import {planSearch,topicSuggestions,keywordPrefixScore} from '../public/search-topics.js';
 // Public catalogue reads use only a publishable key and invoker/RLS functions.
 const RESEARCH_ORIGIN='https://hvwmystbqlocjixvwgfl.supabase.co';
 const RESEARCH_KEY='sb_publishable_0fhRn9kYUd8Ur7g9TuCzJQ_Zdu5aIRk';
@@ -25,6 +25,7 @@ export function researchSearchBody(params){
  const q=params.get('q')||'',tags=params.getAll('tag'),plan=planSearch(q,{exact:params.get('exact')==='1'});
  const body={q,selected_tags:tags,page_number:Math.max(1,Math.min(1000000,parseInt(params.get('page'),10)||1)),source_filter:(params.get('source')||'').slice(0,120),exact_match:plan.exact,
  search_plan:{text:plan.text,topicGroups:plan.topicGroups,tagGroups:tags.map(t=>plan.exact?[]:planSearch(t).topicGroups.flat()),intentText:plan.intents.flatMap(i=>i.terms).join(' OR '),
+ filters:{yearFrom:params.get('yearFrom')?Number(params.get('yearFrom')):null,yearTo:params.get('yearTo')?Number(params.get('yearTo')):null},
  strictTopics:plan.topics.some(t=>t.id==='residential-burglary'),domesticTopic:plan.topicGroups.flat().includes('domestic-abuse'),burglaryTopic:plan.topicGroups.flat().includes('burglary')}};
  return {body,plan};
 }
@@ -33,16 +34,23 @@ export async function handleResearch(request,security={},env={}){
  if(!['GET','HEAD'].includes(request.method))return Response.json({error:'Read-only endpoint'},{status:405,headers:{...security,Allow:'GET, HEAD'}});
  const tags=p.getAll('tag');
  if((p.get('q')||'').length>300||tags.length>10||tags.some(t=>t.length>150)||(p.get('source')||'').length>120)return Response.json({error:'Please shorten the search.'},{status:400,headers:security});
- const route=u.pathname==='/api/research/tags'?'research_tags':u.pathname==='/api/research/stats'?'research_stats':'search_research_v2';
+ for(const name of ['yearFrom','yearTo']){const value=p.get(name);if(value&&(!/^\d{4}$/.test(value)||Number(value)<1000||Number(value)>2100))return Response.json({error:'Enter a publication year between 1000 and 2100.'},{status:400,headers:security});}
+ if(p.get('yearFrom')&&p.get('yearTo')&&Number(p.get('yearFrom'))>Number(p.get('yearTo')))return Response.json({error:'The start year must be before or the same as the end year.'},{status:400,headers:security});
+ const route=u.pathname==='/api/research/tags'?'research_tags':u.pathname==='/api/research/stats'?'research_stats':u.pathname==='/api/research/filters'?'research_filters':'search_research_v2';
  const {body:searchBody,plan}=researchSearchBody(p);
- const body=route==='research_stats'?{}:route==='research_tags'?{prefix:(p.get('q')||'').slice(0,100)}:searchBody;
+ const body=['research_stats','research_filters'].includes(route)?{}:route==='research_tags'?{prefix:(p.get('q')||'').slice(0,100)}:searchBody;
  if(route==='search_research_v2'&&!plan.exact&&plan.semanticText&&boundedAiRequest(request))body.query_embedding=await embedSearch(env,plan.semanticText);
  try{
   const reply=await fetch(RESEARCH_ORIGIN+'/rest/v1/rpc/'+route,{method:'POST',headers:{apikey:RESEARCH_KEY,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(12000)});
   if(!reply.ok)throw Error('Catalogue unavailable');
   let data=await reply.json();
   if(route==='search_research_v2')data={...data,interpretation:{exact:plan.exact,corrected:plan.corrected,corrections:plan.corrections,topics:plan.topics.map(({id,label})=>({id,label})),intents:plan.intents.map(({id,label})=>({id,label})),related:plan.related,suggestions:plan.suggestions},semanticAvailable:Boolean(body.query_embedding)&&data.semanticAvailable===true};
-  if(route==='research_tags')data=[...new Map([...topicSuggestions(p.get('q')||''),...(plan.topics.length?[]:data)].map(t=>[t.tag.toLowerCase(),t])).values()].slice(0,12);
+  if(route==='research_tags'){
+   const prefix=p.get('q')||'',local=topicSuggestions(prefix),catalogue=plan.topics.length?[]:data.filter(t=>keywordPrefixScore(t.tag,prefix)>0).sort((a,b)=>keywordPrefixScore(b.tag,prefix)-keywordPrefixScore(a.tag,prefix));
+   const merged=new Map(local.map(t=>[t.tag.toLowerCase(),t]));
+   for(const t of catalogue){const key=t.tag.toLowerCase();merged.set(key,{...t,...merged.get(key)});}
+   data=[...merged.values()].slice(0,12);
+  }
   return new Response(request.method==='HEAD'?null:JSON.stringify(data),{headers:{...security,'Content-Type':'application/json; charset=utf-8','Cache-Control':'public, max-age=60'}});
  }catch{return Response.json({error:'Research search is temporarily unavailable. Please try again.'},{status:503,headers:{...security,'Cache-Control':'no-store'}});}
 }

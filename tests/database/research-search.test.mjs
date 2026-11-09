@@ -7,7 +7,7 @@ import {researchSearchBody} from '../../backend/research.mjs';
 export async function searchFixture(){
  const db=new PGlite();await db.waitReady;
  await db.exec(`create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema private;grant usage on schema private,public to service_role;grant usage on schema public to anon,authenticated;alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
- for(const file of ['20261024020000_research_catalogue.sql','20261024020430_topic_hybrid_search.sql','20261024022002_improve_search_relevance.sql','20261024023325_refine_search_catalogue_text.sql'])await db.exec(await readFile(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['20261024020000_research_catalogue.sql','20261024020430_topic_hybrid_search.sql','20261024022002_improve_search_relevance.sql','20261024023325_refine_search_catalogue_text.sql','20261109011839_research_advanced_filters.sql'])await db.exec(await readFile(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
  const fixtures=[
  ['da','Domestic violence prevention','Programmes to reduce repeated assaults.',['domestic abuse'],'alpha'],
  ['ipv','Intimate partner violence','Evaluation of an intervention to reduce abuse.',['partner violence'],'alpha'],
@@ -76,5 +76,30 @@ test('topic and meaning search retrieves expected records while retaining bounda
  await t.test('pagination is complete, deterministic and clamps out-of-range pages',async()=>{
  for(let i=0;i<43;i++)await db.query("insert into public.research_records(id,source,source_slug,title,url) values($1,'pages','pages','Burglary test','https://fixture.test/pages')",['page'+String(i).padStart(3,'0')]);
  const ids=[];for(let i=1;i<=3;i++)ids.push(...(await search(db,'burglary',{source:'pages',page:String(i)})).results.map(r=>r.id));assert.equal(new Set(ids).size,43);assert.equal((await search(db,'burglary',{source:'pages',page:'99'})).page,3);
+ });
+ await t.test('publication years restrict all result tiers and keep unknown dates explicit',async()=>{
+ const fixtures=[['year-old','2009'],['year-start','2010-01-02'],['year-end','Published 2020'],['year-new','2021'],['year-unknown','Not recorded'],['year-number','120100']];
+ for(const [id,publication] of fixtures)await db.query("insert into public.research_records(id,source,source_slug,title,url,publication) values($1,'year fixtures','year-fixtures','Burglary prevention','https://fixture.test/year',$2)",[id,publication]);
+ assert.equal((await search(db,'burglary',{source:'year-fixtures'})).total,6);
+ assert.deepEqual((await search(db,'burglary',{source:'year-fixtures',yearFrom:'2010',yearTo:'2020'})).results.map(r=>r.id).sort(),['year-end','year-start']);
+ assert.deepEqual((await search(db,'',{source:'year-fixtures',yearTo:'2009'})).results.map(r=>r.id),['year-old']);
+ assert.deepEqual((await search(db,'',{source:'year-fixtures',yearFrom:'2021'})).results.map(r=>r.id),['year-new']);
+ const vector=Array(384).fill(0);vector[0]=1;
+ await db.query("update public.research_search_documents set embedding=$1,embedding_model='@cf/baai/bge-small-en-v1.5:cls:v1' where record_id like 'year-%'",[JSON.stringify(vector)]);
+ const semantic=await search(db,'protect homes',{source:'year-fixtures',yearFrom:'2010',yearTo:'2020'},vector);
+ assert.deepEqual(semantic.results.map(r=>r.id).sort(),['year-end','year-start']);
+ assert.ok(semantic.results.every(r=>r.match_type==='meaning'));
+ await db.exec('set role anon');
+ const filters=(await db.query('select public.research_filters() as result')).rows[0].result;
+ assert.equal(filters.years.min,2009);assert.equal(filters.years.max,2021);assert.ok(filters.years.unknownCount>0);
+ assert.equal(filters.sources.find(s=>s.id==='year-fixtures').count,6);
+ await assert.rejects(db.query("select public.search_research_v2(search_plan => '{\"filters\":{\"yearFrom\":2025,\"yearTo\":2020}}')"),/Invalid year range/);
+ await assert.rejects(db.query("select public.search_research_v2(search_plan => '{\"filters\":{\"yearFrom\":\"no\"}}')"),/Invalid start year/);
+ await db.exec('reset role');
+ });
+ await t.test('database keyword suggestions match word prefixes and rank labels',async()=>{
+ await db.query("update public.research_records set tags=array['randomised experiment','domestic abuse','other domestic violence'] where id='da'");
+ const tags=(await db.query("select public.research_tags('dom') as result")).rows[0].result;
+ assert.equal(tags[0].tag,'domestic abuse');assert.ok(tags.some(t=>t.tag==='other domestic violence'));assert.ok(!tags.some(t=>t.tag==='randomised experiment'));
  });
 });

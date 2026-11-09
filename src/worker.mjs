@@ -71,7 +71,7 @@ export default {
       url.port='';
       return new Response(null,{status:308,headers:{...security,Location:url.href,'Cache-Control':'public, max-age=3600'}});
     }
-    if(['/api/research','/api/research/tags','/api/research/stats'].includes(url.pathname))return handleResearch(request,security,env);
+    if(['/api/research','/api/research/tags','/api/research/stats','/api/research/filters'].includes(url.pathname))return handleResearch(request,security,env);
     if(url.pathname==='/api/internal/research-index'&&await authorisedResearchIndex(request,env)){
       try{return Response.json(await runResearchIndex(env,{batches:4}),{headers:{...security,'Cache-Control':'no-store'}});}catch{return Response.json({error:'Indexing will retry'},{status:503,headers:{...security,'Cache-Control':'no-store'}});}
     }
