@@ -132,7 +132,8 @@ export function bindResearch({params,sources=[],searchSources}){
   }catch{if(!disposed){status.textContent='The full catalogue source list could not be loaded. You can still search by topic or year.';filtersLoaded=false;}}finally{clearTimeout(timeout);}
  }
  function setUrl(push,p=urlParams()){const url='/research?'+p;if(push&&url!==location.pathname+location.search)history.pushState(null,'',url);else history.replaceState(null,'',url);}
- function validateYears(){const from=controls.yearFrom,to=controls.yearTo;to.setCustomValidity(from.value&&to.value&&Number(from.value)>Number(to.value)?'Enter an end year that is the same as or later than the start year.':'');return form.reportValidity();}
+ function updateYearValidity(){const from=controls.yearFrom,to=controls.yearTo;to.setCustomValidity?.(scope()!=='sources'&&from.value&&to.value&&Number(from.value)>Number(to.value)?'Enter an end year that is the same as or later than the start year.':'');}
+ function validateYears(){updateYearValidity();return form.reportValidity();}
  function pagination(total,collection){const pages=Math.ceil(total/20);document.getElementById('research-pagination').innerHTML=(page>1?`<button type="button" class="button button-outline" data-research-page="${page-1}">Previous</button>`:'')+(pages?`<span>${collection==='sources'?'Sources':'Research'} · page ${page} of ${pages}</span>`:'')+(page<pages?`<button type="button" class="button button-outline" data-research-page="${page+1}">Next</button>`:'');}
  function sourceMatches(){
   if(!searchSources)return [];
@@ -208,7 +209,7 @@ export function bindResearch({params,sources=[],searchSources}){
   else if(button.hasAttribute('data-use-exact')){exact.checked=true;page=1;run({push:true});}
   else if(button.hasAttribute('data-retry-research'))run();
  }
- function change(event){updateScope();markDirty();if(event.target.name==='scope'){page=1;if(!home)run({push:true});}}
+ function change(event){updateScope();updateYearValidity();markDirty();if(event.target.name==='scope'){page=1;if(!home)run({push:true});}}
  function outside(event){if(!form.querySelector('.research-query-wrap').contains(event.target))dismissSuggestions();}
  function toggle(){if(advanced?.open)loadFilters();}
  function popstate(){
@@ -221,9 +222,9 @@ export function bindResearch({params,sources=[],searchSources}){
   }
   page=Math.max(1,parseInt(next.get('page'),10)||1);run();
  }
- form.addEventListener('submit',submit);form.addEventListener('change',change);input.addEventListener('input',typing);input.addEventListener('keydown',keyboard);input.addEventListener('focus',suggest);
+ form.addEventListener('input',updateYearValidity);form.addEventListener('submit',submit);form.addEventListener('change',change);input.addEventListener('input',typing);input.addEventListener('keydown',keyboard);input.addEventListener('focus',suggest);
  main.addEventListener('click',click);document.addEventListener('click',outside);advanced?.addEventListener('toggle',toggle);advancedSummary?.addEventListener('click',markInterfaceDirty);if(!home)window.addEventListener('popstate',popstate);
  chips();updateScope();if(advanced?.open)loadFilters();if(!home)run();
- return ()=>{disposed=true;sequence++;suggestSequence++;controller?.abort();tagController?.abort();filterController?.abort();clearTimeout(timer);clearTimeout(requestTimer);clearTimeout(slowTimer);form.removeEventListener('submit',submit);form.removeEventListener('change',change);input.removeEventListener('input',typing);input.removeEventListener('keydown',keyboard);input.removeEventListener('focus',suggest);main.removeEventListener('click',click);document.removeEventListener('click',outside);advanced?.removeEventListener('toggle',toggle);advancedSummary?.removeEventListener('click',markInterfaceDirty);window.removeEventListener('popstate',popstate);};
+ return ()=>{disposed=true;sequence++;suggestSequence++;controller?.abort();tagController?.abort();filterController?.abort();clearTimeout(timer);clearTimeout(requestTimer);clearTimeout(slowTimer);form.removeEventListener('input',updateYearValidity);form.removeEventListener('submit',submit);form.removeEventListener('change',change);input.removeEventListener('input',typing);input.removeEventListener('keydown',keyboard);input.removeEventListener('focus',suggest);main.removeEventListener('click',click);document.removeEventListener('click',outside);advanced?.removeEventListener('toggle',toggle);advancedSummary?.removeEventListener('click',markInterfaceDirty);window.removeEventListener('popstate',popstate);};
 }
 export async function refreshResearchTotal(){try{const response=await fetch('/api/research/stats');if(!response.ok)return;const data=await response.json();for(const element of document.querySelectorAll('[data-research-total]'))element.textContent=fmt(data.total);}catch{}}

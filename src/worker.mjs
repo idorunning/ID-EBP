@@ -8,6 +8,20 @@ import {CATALOGUE} from './catalogue.generated.mjs';
 // Share only simultaneous anonymous catalogue reads. No member response, cookie,
 // or stale published record is retained after the upstream request finishes.
 const communityReads=new WeakMap();
+async function verifyEmailRequest(request,env){
+ const path=new URL(request.url).pathname;
+ if(env.AUTH_HUMAN_CHECK_REQUIRED!=='true'||request.method!=='POST'||!(path==='/api/auth/request'||path==='/api/account/verification'||/^\/api\/sources\/[a-z0-9-]+\/claim-code$/.test(path)))return null;
+ const error=(status,code,message)=>Response.json({error:{code,message}},{status});
+ if(request.headers.get('Origin')!==new URL(request.url).origin||request.headers.get('Sec-Fetch-Site')==='cross-site')return error(403,'forbidden','Use this website to request a code.');
+ if(!env.TURNSTILE_SECRET||!env.TURNSTILE_SITE_KEY)return error(503,'auth_email_unavailable','Email verification is temporarily unavailable.');
+ const token=request.headers.get('X-IDEBP-Human-Token');if(!token||token.length>2048)return error(400,'human_check_failed','Complete the verification and try again.');
+ try{
+  const data=await timedOperation(async signal=>{const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:env.TURNSTILE_SECRET,response:token,remoteip:request.headers.get('CF-Connecting-IP')||undefined}),signal});if(!response.ok)throw Error();return JSON.parse(new TextDecoder().decode(await boundedBody(response,8192,signal)));},8000);
+  if(data.success!==true||data.hostname!==new URL(request.url).hostname||data.action!=='auth_email')return error(400,'human_check_failed','Complete the verification and try again.');
+  return null;
+ }catch{return error(503,'auth_email_unavailable','Email verification is temporarily unavailable.');}
+}
+
 function readCommunity(env){
  if(communityReads.has(env))return communityReads.get(env);
  const reading=timedOperation(async signal=>{
@@ -29,6 +43,7 @@ async function processApiResponse(response,request,env,signal){
  // at the public boundary for both the proxied and direct backend paths.
  const data=JSON.parse(new TextDecoder().decode(await boundedBody(response,4194304,signal)));
  if(!data||typeof data!=='object'||Array.isArray(data))throw Error('Invalid account response');
+ if(new URL(request.url).pathname==='/api/status'&&response.ok)data.humanCheck={required:env.AUTH_HUMAN_CHECK_REQUIRED==='true',sitekey:env.TURNSTILE_SITE_KEY||null};
  if(Object.hasOwn(data,'internalDelivery')){
   const delivery=data.internalDelivery;delete data.internalDelivery;
   const path=new URL(request.url).pathname;
@@ -61,7 +76,7 @@ export default {
       'Referrer-Policy':'strict-origin-when-cross-origin',
       'X-Frame-Options':'DENY',
       'Permissions-Policy':'camera=(), microphone=(), geolocation=()',
-      'Content-Security-Policy':"default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https://cloudflareinsights.com; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'",
+      'Content-Security-Policy':"default-src 'self'; script-src 'self' https://static.cloudflareinsights.com https://challenges.cloudflare.com; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https://cloudflareinsights.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'",
       'X-Robots-Tag':'noindex, nofollow',
     };
     // Keep the purchased domain canonical; leave the workers.dev preview usable.
@@ -77,6 +92,7 @@ export default {
     }
     if(url.pathname.startsWith('/api/internal/'))return new Response('Not found',{status:404,headers:{...security,'Cache-Control':'no-store'}});
     if(url.pathname.startsWith('/api/')){
+      const denied=await verifyEmailRequest(request,env);if(denied){const h=new Headers(denied.headers);for(const [k,v]of Object.entries(security))h.set(k,v);h.set('Cache-Control','no-store');return new Response(denied.body,{status:denied.status,headers:h});}
       try{
         let response;
         if(env.DIRECTORY_API_URL){
@@ -84,7 +100,7 @@ export default {
           else response=await timedOperation(async signal=>{
             const endpoint=directoryEndpoint(env.DIRECTORY_API_URL);
             if(!env.DIRECTORY_PROXY_SECRET)throw Error('Account service proxy is not configured');
-            const headers=new Headers(request.headers);headers.delete('Host');headers.delete('Authorization');headers.delete('X-IDEBP-Internal');
+            const headers=new Headers(request.headers);headers.delete('Host');headers.delete('Authorization');headers.delete('X-IDEBP-Internal');headers.delete('X-IDEBP-Human-Token');
             headers.set('X-IDEBP-Mail-Ready',env.AUTH_EMAIL_ENABLED==='true'&&env.EMAIL?'true':'false');
             headers.set('X-IDEBP-Proxy-Key',env.DIRECTORY_PROXY_SECRET);
             headers.set('X-IDEBP-Client-IP',request.headers.get('CF-Connecting-IP')||'unknown');

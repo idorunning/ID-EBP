@@ -14,3 +14,5 @@
 @media(max-width:800px){.admin-source-record>summary{grid-template-columns:1fr}.admin-source-date{display:none}.admin-filters,.admin-traffic-grid{grid-template-columns:1fr}.admin-source-detail{padding:16px}.admin-source-detail dl{grid-template-columns:1fr}.admin-source-detail dd{margin-bottom:8px}.instant-star{font-size:2rem}}
 
 .claim-progress{display:flex;gap:1rem;flex-wrap:wrap;list-style:none;padding:0;margin:0 0 1.7rem;font-size:.85rem;color:#55575c}.claim-progress li{border-bottom:3px solid #dedfe2;padding:.5rem 0}.claim-progress [aria-current]{border-color:#2453b3;color:#20242b;font-weight:750}.claim-status{padding:1.2rem;background:#f5f6f8;border-radius:.4rem}.claim-status .button{margin-top:.6rem}
+
+.member-human-check{max-width:min(25rem,calc(100vw - 2rem));padding:1.5rem;border:1px solid #ccd4de;border-radius:1rem;background:#fff;color:#172b4d}.member-human-check::backdrop{background:#14233c99}.member-human-check [data-human-widget]{margin:1rem 0}

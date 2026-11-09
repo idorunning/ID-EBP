@@ -8,7 +8,7 @@ const session=id=>id.replace(/^1/,'2');
 test('member collaboration authorisation, review and rating integrity',async t=>{
   const db=new PGlite();await db.waitReady;t.after(()=>db.close());
   await db.exec(`create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;
-    create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,is_anonymous boolean default false,created_at timestamptz default now(),last_sign_in_at timestamptz);
+    create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,is_anonymous boolean default false,created_at timestamptz default now(),last_sign_in_at timestamptz,encrypted_password text);
     create table auth.sessions(id uuid primary key,user_id uuid references auth.users,not_after timestamptz);
     grant usage on schema public,auth to anon,authenticated,service_role;
     create function auth.uid() returns uuid language sql stable as $$select (nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub')::uuid$$;
@@ -142,10 +142,12 @@ test('member collaboration authorisation, review and rating integrity',async t=>
   });
   await t.test('admin rights require a private invitation, confirmed mailbox and initial password change',async()=>{
     assert.equal((await rpc('session',{},'other')).admin,false);
-    await db.query("insert into private.admin_invitations(email) values('student@university.test')");
+    await rpc('admin_manage',{operation:'invite_admin',email:'student@university.test',reason:'Authorised administrator test invitation'},'admin');
     const accepted=await rpc('session',{},'other');assert.equal(accepted.admin,true);assert.equal(accepted.mfaRequired,undefined);
     assert.equal(accepted.passwordChangeRequired,true);
     await assert.rejects(rpc('admin_review',{},'other'),error=>error.message==='password_change_required');
+    await rpc('password_change_begin',{},'other');
+    await db.query("update auth.users set encrypted_password='synthetic-provider-hash' where id=$1",[ids.other]);
     await rpc('password_changed',{},'other');
     assert.ok((await rpc('admin_review',{},'other')).tags);
     assert.ok((await rpc('admin_people',{},'other')).members);
