@@ -1,0 +1,10 @@
+create table private.legacy_source_ratings (user_id uuid not null references auth.users on delete cascade,source_id uuid not null references public.sources on delete cascade,stars smallint not null check(stars between 0 and 5),updated_at timestamptz not null,archived_at timestamptz not null default now(),primary key(user_id,source_id));
+create index legacy_source_ratings_source on private.legacy_source_ratings(source_id);
+create table private.source_feedback (user_id uuid not null references auth.users on delete cascade,source_id uuid not null references public.sources on delete cascade,usefulness text check(usefulness in ('very','somewhat','limited','unable')),clarity text check(clarity in ('clear','mixed','unclear','unable')),traceability text check(traceability in ('easy','difficult','missing','na')),purposes text[] not null default '{}' check(purposes <@ array['research','practice','teaching','policy','learning']::text[] and array_position(purposes,null) is null and cardinality(purposes)<=5),note text not null default '' check(char_length(note)<=1000),revision uuid not null default gen_random_uuid(),created_at timestamptz not null default now(),updated_at timestamptz not null default now(),primary key(user_id,source_id),check(usefulness is not null or clarity is not null or traceability is not null));
+create index source_feedback_source on private.source_feedback(source_id);
+alter table private.source_feedback enable row level security;
+alter table private.legacy_source_ratings enable row level security;
+revoke all on private.source_feedback,private.legacy_source_ratings from public,anon,authenticated,service_role;
+grant select,insert,update,delete on private.source_feedback to service_role;
+grant select on private.legacy_source_ratings to service_role;
+comment on column private.source_feedback.note is 'Optional private feedback for the directory team, never included in public summaries.';

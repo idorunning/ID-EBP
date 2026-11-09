@@ -153,10 +153,10 @@ test('email login and claim requests share the default 120 per-IP hourly budget'
 test('email login and claim requests share the default 150 global hourly budget across IPs',async()=>{
   const f=fixture();const results=await Promise.all(Array.from({length:151},(_,i)=>f.client().call(i%2?'/api/auth/request':'/api/sources/research/claim-code',{email:'global'+i+'@research.test'},{clientIp:'198.51.100.'+(i+1)})));
   assert.equal(results.filter(x=>x.response.status===200).length,150);assert.equal(results.filter(x=>x.response.status===429).length,1);
-  assert.equal(f.calls.filter(x=>x.path==='/auth/v1/admin/generate_link').length,150);
+  assert.equal(f.calls.filter(x=>x.path==='/auth/v1/admin/generate_link').length,151);
 });
 
-test('all Auth email purposes reserve the shared rolling24-hour budget before code creation',async()=>{
+test('all Auth email purposes reserve the shared rolling 24-hour budget before releasing a code for delivery',async()=>{
   const f=fixture({envOverrides:{AUTH_EMAIL_DAILY_LIMIT:'1000'}}),member=f.client();await member.signIn();
   const requests=await Promise.all(Array.from({length:149},(_,i)=>f.client().call(i%2?'/api/auth/request':'/api/sources/research/claim-code',{email:'daily'+i+'@research.test'},{clientIp:'198.51.100.'+(i+1)})));
   assert.equal(requests.every(x=>x.response.status===200),true);
@@ -166,7 +166,7 @@ test('all Auth email purposes reserve the shared rolling24-hour budget before co
   assert.equal((await member.call('/api/account/verification',{kind:'deletion'})).response.status,200);
   assert.equal((await member.call('/api/account/verification',{kind:'email_current'})).response.status,429);
   assert.equal((await f.client().call('/api/auth/request',{email:'one-too-many@research.test'},{clientIp:'203.0.113.7'})).response.status,429);
-  assert.equal(f.calls.filter(x=>x.path==='/auth/v1/admin/generate_link').length,149);
+  assert.equal(f.calls.filter(x=>x.path==='/auth/v1/admin/generate_link').length,150);
   assert.equal(f.calls.filter(x=>x.body?.p_action==='account_challenge').length,1);
   const daily=f.calls.filter(x=>x.body?.p_action==='reserve_auth_email');
   assert.ok(daily.length>150);assert.equal(daily.every(x=>x.body.p_payload.limit===150),true);
@@ -199,4 +199,12 @@ test('upstream Auth forwarding requires a modern key, opt-in and a trusted singl
     for(const call of f.calls.filter(x=>x.path.startsWith('/rest/'))){assert.equal(call.headers['Sb-Forwarded-For'],undefined);assert.equal(call.headers.apikey,env.SUPABASE_SECRET_KEY);}
     if(expected){assert.ok(f.calls.filter(x=>x.path.startsWith('/auth/v1/')).every(x=>x.headers.apikey===modern));assert.equal(f.calls.find(x=>x.path==='/auth/v1/token').headers.Authorization,undefined);}
   }
+});
+
+test('invalid registrations cannot drain the delivery allowance',async()=>{
+ const f=fixture();
+ for(let n=0;n<151;n++)assert.equal((await f.client().call('/api/auth/request',{email:`invalid${n}@fixture.test`,displayName:'x'.repeat(121)})).response.status,400);
+ assert.equal(f.calls.filter(c=>c.body?.p_action==='reserve_auth_email').length,0);
+ assert.equal(f.calls.filter(c=>c.path==='/auth/v1/admin/generate_link').length,0);
+ assert.equal((await f.client().call('/api/auth/request',{email:'valid@fixture.test'})).response.status,200);
 });

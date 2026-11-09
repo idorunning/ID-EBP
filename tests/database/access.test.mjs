@@ -148,7 +148,7 @@ test('directory database permission and integrity checks',async t=>{
   await t.test('all application tables enable RLS and helper functions are not callable by client roles',async()=>{
     assert.deepEqual((await db.query("select c.relname from pg_class c join pg_namespace n on c.relnamespace=n.oid where n.nspname in ('public','private') and c.relkind='r' and not c.relrowsecurity")).rows,[]);
     for(const role of ['anon','authenticated','service_role']){
-      assert.deepEqual((await db.query("select p.proname from pg_proc p join pg_namespace n on p.pronamespace=n.oid where n.nspname='private' and (p.proname not in ('directory_core','directory_access','directory_reports','directory_saved') or $1<>'service_role') and has_function_privilege($1,p.oid,'EXECUTE')",[role])).rows,[]);
+      assert.deepEqual((await db.query("select p.proname from pg_proc p join pg_namespace n on p.pronamespace=n.oid where n.nspname='private' and (p.proname not in ('directory_core','directory_access','directory_reports','directory_saved','feedback_summary','reconcile_password_change','password_fingerprint') or $1<>'service_role') and has_function_privilege($1,p.oid,'EXECUTE')",[role])).rows,[]);
     }
   });
 

@@ -7,7 +7,7 @@ import {researchSearchBody} from '../../backend/research.mjs';
 export async function searchFixture(){
  const db=new PGlite();await db.waitReady;
  await db.exec(`create role anon nologin;create role authenticated nologin;create role service_role nologin bypassrls;create schema private;grant usage on schema private,public to service_role;grant usage on schema public to anon,authenticated;alter default privileges in schema public grant all on tables to anon,authenticated,service_role;`);
- for(const file of ['20261024020000_research_catalogue.sql','20261024020430_topic_hybrid_search.sql','20261024022002_improve_search_relevance.sql','20261024023325_refine_search_catalogue_text.sql','20261109011839_research_advanced_filters.sql'])await db.exec(await readFile(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for(const file of ['20261024020000_research_catalogue.sql','20261024021545_topic_hybrid_search.sql','20261024022031_improve_search_relevance.sql','20261024023453_refine_search_catalogue_text.sql','20261109012052_research_advanced_filters.sql'])await db.exec(await readFile(new URL('../../supabase/migrations/'+file,import.meta.url),'utf8'));
  const fixtures=[
  ['da','Domestic violence prevention','Programmes to reduce repeated assaults.',['domestic abuse'],'alpha'],
  ['ipv','Intimate partner violence','Evaluation of an intervention to reduce abuse.',['partner violence'],'alpha'],
