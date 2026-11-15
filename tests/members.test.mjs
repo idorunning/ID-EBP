@@ -30,7 +30,7 @@ test('member service does not invent an account, star score or successful regist
   assert.match(html,/type="submit" disabled/);
   assert.equal(getMemberSession().user,null);
   const widget=renderContributionWidget({id:'sample'});
-  assert.match(widget,/Not rated yet/);
+  assert.match(widget,/You have not rated this source/);
   assert.doesNotMatch(widget,/<input[^>]*\bchecked\b/);
   assert.doesNotMatch(widget,/value="0"/);
   assert.match(widget,/value="1"/);
@@ -52,15 +52,16 @@ test('published community tags remain escaped and account requests use same-orig
   assert.equal(contributions.sample.ratingAverage,0);
   assert.equal(getContributionSummary('sample').ratingCount,2);
   const widget=renderContributionWidget({id:'sample'});
-  assert.match(widget,/0\.0 \/ 5/);
+  assert.doesNotMatch(widget,/0\.0 \/ 5/,'the public widget never shows the rating average');
+  assert.match(widget,/seen only by the source’s owners/);
   assert.match(widget,/&lt;img/);
   assert.doesNotMatch(widget,/<img src=x/);
   assert.match(widget,/Approved source contact confirmed/);
   assert.match(widget,/instant-stars/);
   assert.doesNotMatch(widget,/\sstyle\s*=/);
   const fractional=renderContributionWidget({id:'fractional'});
-  assert.match(fractional,/instant-star is-filled/);
-  assert.match(fractional,/4\.3 \/ 5/);
+  assert.doesNotMatch(fractional,/instant-star is-filled/,'public stars never reflect the average');
+  assert.doesNotMatch(fractional,/4\.3 \/ 5/);
   assert.doesNotMatch(fractional,/\sstyle\s*=/);
   assert.equal(requests.every(request=>request.options.credentials==='same-origin'),true);
   assert.equal(requests.every(request=>request.options.cache==='no-store'),true);

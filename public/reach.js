@@ -1,25 +1,35 @@
-// Decorative count-up uses real totals; assistive technology receives final values.
-let celebrated=false;
+// Homepage coverage counters. Each figure counts up in turn when the panel
+// scrolls into view, with a bar that fills beneath it. Screen readers get the
+// final values from the hidden labels; reduced-motion users see final values.
 const reduced=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-function play(container){
- const counters=[...container.querySelectorAll('[data-count]')];
- if(reduced()){for(const el of counters)el.textContent=el.dataset.count;return;}
- const start=performance.now(),duration=1600;
+const fmt=n=>Math.round(n).toLocaleString(document.documentElement.lang||'en-GB');
+const ease=x=>x>=1?1:1-Math.pow(2,-10*x); // ease-out-expo: fast start, gentle landing
+let played=false;
+
+function play(panel){
+ const counters=[...panel.querySelectorAll('[data-count]')];
+ if(reduced()){for(const el of counters)el.textContent=fmt(Number(el.dataset.count));panel.classList.add('is-visible');return;}
+ for(const el of counters)el.textContent='0';
+ panel.classList.add('is-visible','stats-animating');
+ const start=performance.now(),duration=1800,stagger=220;
  const frame=now=>{
-  const progress=Math.max(0,Math.min(1,(now-start)/duration)),eased=1-Math.pow(1-progress,3);
-  for(const el of counters)el.textContent=Math.round(Number(el.dataset.count)*eased).toLocaleString(document.documentElement.lang);
-  if(progress<1&&container.isConnected)requestAnimationFrame(frame);
+  let running=false;
+  counters.forEach((el,index)=>{
+   const progress=Math.max(0,Math.min(1,(now-start-index*stagger)/duration));
+   el.textContent=fmt(Number(el.dataset.count)*ease(progress));
+   if(progress<1)running=true;
+  });
+  if(running&&panel.isConnected)requestAnimationFrame(frame);
+  else{for(const el of counters)el.textContent=fmt(Number(el.dataset.count));panel.classList.remove('stats-animating');}
  };
  requestAnimationFrame(frame);
- container.classList.remove('celebrating');
- requestAnimationFrame(()=>container.classList.add('celebrating'));
 }
+
 export function bindReach(){
- const container=document.querySelector('.reach-feature');if(!container)return;
- document.querySelector('#replay-reach')?.addEventListener('click',()=>play(container));
- if(celebrated||reduced())return;
- if(!('IntersectionObserver' in window)){celebrated=true;play(container);return;}
+ const panel=document.querySelector('[data-stats]');if(!panel)return;
+ if(played||reduced()||!('IntersectionObserver' in window)){panel.classList.add('is-visible');return;}
  const observer=new IntersectionObserver(entries=>{
-  if(entries.some(e=>e.isIntersecting)){celebrated=true;play(container);observer.disconnect();}
- },{threshold:.25});observer.observe(container);
+  if(entries.some(e=>e.isIntersecting)){played=true;play(panel);observer.disconnect();}
+ },{threshold:.35});
+ observer.observe(panel);
 }
