@@ -1,5 +1,4 @@
 // Thinking About Policing ownership: links, contact details and shared markup.
-// Social links still to be confirmed by Nathan are marked TODO.
 export const TAP={
  name:'Thinking About Policing',
  url:'https://thinkingaboutpolicing.org',
@@ -11,9 +10,9 @@ export const TAP={
   {label:'About Thinking About Policing',href:'https://thinkingaboutpolicing.org/about'}
  ],
  social:[
-  {id:'linkedin',label:'LinkedIn',href:'#linkedin'}, // TODO: Nathan to supply the TAP LinkedIn link
-  {id:'x',label:'X',href:'#x'}, // TODO: Nathan to supply the TAP X link
-  {id:'bluesky',label:'Bluesky',href:'https://bsky.app/profile/thinkpolicing.bsky.social'} // TODO: confirm handle
+  {id:'linkedin',label:'LinkedIn',href:'https://www.linkedin.com/in/nathan-tracey-3b85a9427'},
+  {id:'x',label:'X',href:'https://x.com/ta_policing'},
+  {id:'bluesky',label:'Bluesky',href:'https://bsky.app/profile/thinkpolicing.bsky.social'}
  ]
 };
 
