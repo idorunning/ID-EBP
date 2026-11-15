@@ -14,9 +14,9 @@ export function queryWords(value) {
     .replace(/\bwell being\b/g,'wellbeing')
     .split(' ').filter(Boolean);
 }
-export const signature=s=>JSON.stringify([s.name,s.about,s.url,s.owner,s.types,s.languages,s.topics,s.searchTerms,s.communityTags,s.translations]);
-export function buildSearchEntry(s) {
-  const fields={
+export const signature=s=>JSON.stringify(searchFields(s));
+function searchFields(s) {
+  return {
     name:normalise(s.name),owner:normalise([s.owner,s.initials,s.brandName].join(' ')),
     topics:normalise((s.topics||[]).join(' ')),
     aliases:normalise([s.originalName,...(s.searchTerms||[])].join(' ')),
@@ -26,7 +26,10 @@ export function buildSearchEntry(s) {
     geography:normalise([s.country,...(s.coverage||[])].join(' ')),
     classification:normalise([...(s.types||[]),...(s.content||[]),...(s.methods||[]),...(s.languages||[])].join(' ')),
   };
-  return {id:s.id,signature:signature(s),fields,tokens:[...new Set(Object.values(fields).flatMap(queryWords))]};
+ }
+export function buildSearchEntry(s){
+ const fields=searchFields(s);
+ return {id:s.id,signature:JSON.stringify(fields),fields,tokens:[...new Set(Object.values(fields).flatMap(queryWords))]};
 }
 export function tokenMatches(token,word) {
   const unsegmented=word.length>=2&&/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}]/u.test(word);

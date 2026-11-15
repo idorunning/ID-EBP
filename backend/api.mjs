@@ -72,6 +72,8 @@ export async function handleApi(request,env={},context={}){
     try{response=await fetcher(config.base+path,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});}catch{fail(503,'service_unavailable','The account service is temporarily unavailable. Please try again.');}
     const data=await upstreamJson(response);
     if(!response.ok){
+      if(path==='/auth/v1/user'&&data.code==='weak_password')fail(400,'weak_password','Choose a longer, unique password that has not appeared in a known data breach.');
+      if(path==='/auth/v1/user'&&data.code==='same_password')fail(400,'same_password','Choose a different password.');
       if(path==='/auth/v1/admin/generate_link'&&[400,404,422].includes(response.status))fail(400,'invalid_details','The account request could not be accepted.');
       if(data.code==='42501'||response.status===403){
         const reason=String(data.message||'');
@@ -148,10 +150,9 @@ export async function handleApi(request,env={},context={}){
     if(path==='/api/auth/request'&&method==='POST'){
       if(!config.emailEnabled)fail(503,'auth_email_unavailable','Email sign-in is being connected. Please try again later.');
       const body=await jsonBody(request), address=email(body.email),recovery=body.purpose==='reset';
+      const displayName=String(body.displayName||'').trim();if(displayName.length>120)fail(400,'invalid_details','Use a shorter display name.');
       await rate('email-send-ip',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',config.emailIpLimit,3600);
       await rate('otp-email',address,3,600);
-      await emailDeliveryBudget();
-      const displayName=String(body.displayName||'').trim();if(displayName.length>120)fail(400,'invalid_details','Use a shorter display name.');
       // Supabase issues the one-time code; the trusted Worker delivers it.
       // This internal payload is consumed and stripped before the browser reply.
       let delivery=null,otpType=recovery?'recovery':'email';
@@ -162,8 +163,9 @@ export async function handleApi(request,env={},context={}){
           if(error.status!==400)throw error;
           if(!recovery&&body.createAccount===true){generated=await upstream('/auth/v1/admin/generate_link',{type:'signup',email:address,password:random()+random(),data:{display_name:displayName}},{service:true});otpType='signup';}
         }
-        if(generated){const code=generated.email_otp||generated.properties?.email_otp;if(!/^\d{6,10}$/.test(code||''))fail(503,'auth_email_unavailable','Email sign-in is temporarily unavailable.');delivery={email:address,code,purpose:recovery?'reset':'signin'};otpType=recovery?'recovery':generated.verification_type||generated.properties?.verification_type||otpType;}
+        if(generated){const code=generated.email_otp||generated.properties?.email_otp;if(!/^\d{6,10}$/.test(code||''))fail(503,'auth_email_unavailable','Email sign-in is temporarily unavailable.');await emailDeliveryBudget();delivery={email:address,code,purpose:recovery?'reset':'signin'};otpType=recovery?'recovery':generated.verification_type||generated.properties?.verification_type||otpType;}
       } else {
+        await emailDeliveryBudget();
         try{if(recovery)await upstream('/auth/v1/recover',{email:address});else await upstream('/auth/v1/otp',{email:address,create_user:body.createAccount===true,data:{display_name:displayName}});}catch(error){if(!(error instanceof ApiError)||error.status!==400)throw error;}
       }
       responseHeaders.append('Set-Cookie',cookie(LOGIN_COOKIE,await seal({email:address,type:otpType,purpose:recovery?'reset':'signin',until:Date.now()+600000},config.sessionSecret),600));
@@ -205,12 +207,13 @@ export async function handleApi(request,env={},context={}){
         if(!config.emailEnabled||env.AUTH_MAIL_TRANSPORT!=='worker')fail(503,'auth_email_unavailable','Email verification is temporarily unavailable.');
         await rpc('profile',{slug});
         await rate('email-send-ip',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',config.emailIpLimit,3600);
-        await rate('claim-code-email',address,3,600);await emailDeliveryBudget();
+        await rate('claim-code-email',address,3,600);
         let generated,otpType='email';
         try{generated=await upstream('/auth/v1/admin/generate_link',{type:'magiclink',email:address},{service:true});}
         catch(error){if(error.status!==400)throw error;generated=await upstream('/auth/v1/admin/generate_link',{type:'signup',email:address,password:random()+random()},{service:true});otpType='signup';}
         const code=generated.email_otp||generated.properties?.email_otp;
         if(!/^\d{6,10}$/.test(code||''))fail(503,'auth_email_unavailable','Email verification is temporarily unavailable.');
+        await emailDeliveryBudget();
         otpType=generated.verification_type||generated.properties?.verification_type||otpType;
         responseHeaders.append('Set-Cookie',cookie(CLAIM_COOKIE,await seal({slug,email:address,actor:member?.id||null,type:otpType,until:Date.now()+600000},config.sessionSecret),600));
         return reply({sent:true,expiresIn:600,internalDelivery:{email:address,code,purpose:'claim'}});
@@ -279,8 +282,12 @@ export async function handleApi(request,env={},context={}){
     if(path==='/api/auth/password-change'&&method==='POST'){
       const body=await jsonBody(request);
       if(typeof body.password!=='string'||body.password.length<12||body.password.length>128)fail(400,'invalid_details','Use a password of at least 12 characters.');
-      await upstream('/auth/v1/user',{password:body.password},{token:current.access,method:'PUT'});
-      await rpc('password_changed',{},actor);current.recoveryUntil=0;responseHeaders.set('Set-Cookie',cookie(SESSION_COOKIE,await seal(current,config.sessionSecret)));user=null;const after=await sessionAfterWrite();return reply({...after.session,sessionRefreshPending:after.sessionRefreshPending===true});
+      const begun=await rpc('password_change_begin',{},actor);
+      try{await upstream('/auth/v1/user',{password:body.password},{token:current.access,method:'PUT'});}
+      catch(error){if(!(begun.reconciled===true&&error.code==='same_password'))throw error;}
+      let pending=false;try{await rpc('password_changed',{},actor);}catch{pending=true;}
+      current.recoveryUntil=0;responseHeaders.set('Set-Cookie',cookie(SESSION_COOKIE,await seal(current,config.sessionSecret)));user=null;
+      const after=await sessionAfterWrite();return reply({...after.session,passwordUpdated:true,sessionRefreshPending:pending||after.sessionRefreshPending===true});
     }
     if(path==='/api/auth/logout'&&method==='POST'){
       await upstream('/auth/v1/logout?scope=local',undefined,{token:current.access});
