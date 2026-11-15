@@ -68,8 +68,16 @@ test('directory database permission and integrity checks',async t=>{
       assert.equal((await d.query('select * from public.sources where id=$1',[hidden])).rows.length,0);
       assert.equal((await d.query('select * from public.source_links')).rows.length,1);
       assert.deepEqual((await d.query('select locale from public.source_translations')).rows,[{locale:'fr'}]);
-      assert.equal((await d.query('select * from public.source_signals')).rows.length,SOURCES.length);
+      assert.equal((await d.query('select source_id,domain_confirmed,organisation_confirmed from public.source_signals')).rows.length,SOURCES.length);
     });
+  });
+
+  await t.test('source ratings are not readable by visitors or members',async()=>{
+    for(const [role,user] of [['anon',null],['authenticated',users.member]]){
+      await denied(role,user,'select rating_average from public.source_signals');
+      await denied(role,user,'select rating_count from public.source_signals');
+      await denied(role,user,'select * from public.source_signals');
+    }
   });
 
   await t.test('private contacts, claims, verification and account records are inaccessible to clients',async()=>{

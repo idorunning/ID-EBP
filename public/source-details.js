@@ -42,5 +42,5 @@ export function linkAuditMarkup(source,lang='en'){
  return `<div class="source-link-audit"><span class="audit-status audit-status-${status}">${esc(labels[status])}</span>${date?`<span class="small muted">${esc(c.date)} <time datetime="${date}">${new Intl.DateTimeFormat(lang,{dateStyle:'medium',timeZone:'UTC'}).format(new Date(date+'T12:00:00Z'))}</time></span>`:''}${detail}</div>`;
 }
 export function correctionNotice(lang='en'){
- return `<p class="source-correction">${esc(copy(lang).correction)} <a href="mailto:contact@id-ebp.org">contact@id-ebp.org</a>.</p>`;
+ return `<p class="source-correction">${esc(copy(lang).correction)} <a href="mailto:hello@thinkingaboutpolicing.org">hello@thinkingaboutpolicing.org</a>.</p>`;
 }

@@ -55,6 +55,22 @@ async function upstreamJson(response){
   catch{if(response.ok)unavailable();return {};}
 }
 
+// Ratings are a private tool for source owners, not a public popularity score.
+// Visitors and members see only their own rating; the average and count are
+// returned only to people who manage that source.
+export function ownerOnlyRating(result){
+ if(!result||typeof result!=='object'||!result.rating||result.managed===true)return result;
+ return {...result,rating:{own:result.rating.own??null}};
+}
+export function publicCommunity(result){
+ if(!result||typeof result!=='object'||!result.sources||typeof result.sources!=='object')return result;
+ const sources={};
+ for(const [slug,entry] of Object.entries(result.sources)){
+  if(!entry||typeof entry!=='object'){sources[slug]=entry;continue;}
+  const {rating,ratingAverage,ratingCount,...rest}=entry;sources[slug]=rest;
+ }
+ return {...result,sources};
+}
 export async function handleApi(request,env={},context={}){
   const config=settings(env), url=new URL(request.url),path=url.pathname, method=request.method;
   const responseHeaders=new Headers({'Cache-Control':'private, no-store, max-age=0','Pragma':'no-cache','Vary':'Cookie','X-Content-Type-Options':'nosniff'});
@@ -144,7 +160,7 @@ export async function handleApi(request,env={},context={}){
     if(!['GET','POST','PUT','PATCH','DELETE'].includes(method))fail(405,'method_not_allowed','This request method is not supported.');
     if(method!=='GET'){sameOrigin(request);if(Number(request.headers.get('Content-Length'))>16384)fail(413,'body_too_large','The submitted details are too long.');}
     if(path==='/api/session'&&method==='GET')return reply(await sessionData());
-    if(path==='/api/community'&&method==='GET')return reply(await rpc('community'));
+    if(path==='/api/community'&&method==='GET')return reply(publicCommunity(await rpc('community')));
     if(path==='/api/auth/request'&&method==='POST'){
       if(!config.emailEnabled)fail(503,'auth_email_unavailable','Email sign-in is being connected. Please try again later.');
       const body=await jsonBody(request), address=email(body.email),recovery=body.purpose==='reset';
@@ -232,7 +248,7 @@ export async function handleApi(request,env={},context={}){
       return reply({...result,...await sessionAfterWrite()},201);
     }
     if(sourceMatch&&method==='GET'&&['community','profile'].includes(sourceMatch[2])){
-      await authenticate(false);return reply(await rpc(sourceMatch[2]==='profile'?'profile':'source_community',{slug:sourceMatch[1]},user));
+      await authenticate(false);const found=await rpc(sourceMatch[2]==='profile'?'profile':'source_community',{slug:sourceMatch[1]},user);return reply(sourceMatch[2]==='community'?ownerOnlyRating(found):found);
     }
     const actor=await authenticate();
     if(method!=='GET'){csrf(request,current);await rate('member-write',actor.id,120,3600);}
@@ -289,8 +305,8 @@ export async function handleApi(request,env={},context={}){
     if(path==='/api/sources'&&method==='POST')return reply(await rpc('submit_source',await jsonBody(request),actor),201);
     if(sourceMatch){
       const [,slug,kind]=sourceMatch;
-      if(kind==='rating'&&method==='PUT'){const body=await jsonBody(request);if(!Number.isInteger(body.stars)||body.stars<0||body.stars>5)fail(400,'invalid_rating','Choose a whole-star rating from 0 to 5.');return reply(await rpc('rate_source',{slug,stars:body.stars},actor));}
-      if(kind==='rating'&&method==='DELETE')return reply(await rpc('remove_rating',{slug},actor));
+      if(kind==='rating'&&method==='PUT'){const body=await jsonBody(request);if(!Number.isInteger(body.stars)||body.stars<0||body.stars>5)fail(400,'invalid_rating','Choose a whole-star rating from 0 to 5.');return reply(ownerOnlyRating(await rpc('rate_source',{slug,stars:body.stars},actor)));}
+      if(kind==='rating'&&method==='DELETE')return reply(ownerOnlyRating(await rpc('remove_rating',{slug},actor)));
       if(kind==='tags'&&method==='POST'){const body=await jsonBody(request);return reply(await rpc('suggest_tag',{slug,label:body.label},actor),201);}
       if(['team','invite-editor','accept-editor','revoke-editor'].includes(kind))return reply(await rpc(kind.replaceAll('-','_'),{...(method==='POST'?await jsonBody(request):{}),slug},actor));
       if(kind==='profile'&&method==='PATCH')return reply(await rpc('edit_profile',{slug,profile:await jsonBody(request)},actor),202);

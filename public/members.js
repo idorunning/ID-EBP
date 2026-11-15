@@ -542,8 +542,12 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
 }
 
 function ratingSummary(rating,lang,{can=false,managed=false}={}) {
+ // Ratings are private: the average is shown only to people who manage the source.
  const count=Number(rating?.count)||0,average=count?Number(rating?.average):0,own=normaliseRating(rating?.own);
- return `<div class="member-rating-summary"><div class="instant-stars" role="group" aria-label="Rate this source from 1 to 5 stars">${[1,2,3,4,5].map(star=>`<button type="button" class="instant-star ${average>=star-.5?'is-filled':''}" data-rate="${star}" value="${star}" aria-label="${star} ${star===1?'star':'stars'} — click to rate" aria-pressed="${own===star}" ${managed?'disabled':''}>★</button>`).join('')}</div><strong>${count?`${average.toFixed(1)} / 5 · ${count} ${count===1?'rating':'ratings'}`:esc(tr(lang,'aggregateEmpty'))}</strong></div><p class="member-hint">${managed?'Source representatives cannot rate their own source.':can?'Click a star to rate. Click another whenever you want to change your rating.':'Sign in to rate this source.'}</p>`;
+ const filled=managed?average:(own??0);
+ const stars=`<div class="instant-stars" role="group" aria-label="${managed?'Average rating':'Rate this source from 1 to 5 stars'}">${[1,2,3,4,5].map(star=>`<button type="button" class="instant-star ${filled>=star-.5?'is-filled':''}" data-rate="${star}" value="${star}" aria-label="${star} ${star===1?'star':'stars'}${managed?'':' — click to rate'}" aria-pressed="${own===star}" ${managed?'disabled':''}>★</button>`).join('')}</div>`;
+ if(managed)return `<div class="member-rating-summary is-owner-view">${stars}<strong>${count?`${average.toFixed(1)} / 5 · ${count} ${count===1?'rating':'ratings'}`:esc(tr(lang,'aggregateEmpty'))}</strong></div><p class="member-hint">Only the people who manage this source can see these ratings. Source representatives cannot rate their own source.</p>`;
+ return `<div class="member-rating-summary">${stars}<strong>${own===null?'You have not rated this source':`Your rating: ${own} / 5`}</strong></div><p class="member-hint">${can?'Select a star to rate this source. Ratings are private and are seen only by the source’s owners.':'Sign in to rate this source. Ratings are private and are seen only by the source’s owners.'}</p>`;
 }
 
 function contributionContent(source,lang) {

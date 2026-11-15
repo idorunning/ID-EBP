@@ -28,7 +28,7 @@ test('restricted checks and generated/source-provided summaries have distinct la
  assert.match(html,/2026-10-15/);
  assert(!html.includes('Website checked'));
  assert.match(correctionNotice(),/If details are incorrect or you wish to be removed, email/);
- assert.match(correctionNotice(),/href="mailto:contact@id-ebp.org"/);
+ assert.match(correctionNotice(),/href="mailto:hello@thinkingaboutpolicing.org"/);
 });
 test('every catalogue entry has a dated audit, a summary and evidenced public contact metadata',()=>{
  for(const source of SOURCES){

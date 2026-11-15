@@ -11,11 +11,11 @@ export function researchForm(query='',home=false,params=new URLSearchParams(),so
  const scope=scopeValue(params.get('scope'));
  const advanced=['source','yearFrom','yearTo','sourceType','sourceCountry','sourceLanguage','exact'].some(key=>params.get(key));
  return `<form class="research-form ${home?'research-form-home':''}" id="research-form" action="/research" method="get" role="search" aria-label="Search the directory and research catalogue">
-  <fieldset class="search-scope"><legend>Search for</legend>${[['both','Both'],['research','Research'],['sources','Sources']].map(([value,label])=>`<label><input type="radio" name="scope" value="${value}"${scope===value?' checked':''}><span>${label}</span></label>`).join('')}</fieldset>
-  <label class="research-query-label" for="research-query">Topic or keyword</label>
-  <div class="research-query-wrap"><div class="research-input-row"><span aria-hidden="true">⌕</span><input type="search" id="research-query" name="q" value="${escape(query)}" placeholder="Try burglary or domestic abuse" maxlength="300" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="research-suggestions" aria-describedby="research-help"><button class="button" type="submit">Search</button></div><div id="research-suggestions" class="research-suggestions" role="listbox" aria-label="Suggested topics" hidden></div></div>
+  ${home?'<input type="hidden" name="scope" value="both">':`<fieldset class="search-scope"><legend>Search for</legend>${[['both','Both'],['research','Research'],['sources','Sources']].map(([value,label])=>`<label><input type="radio" name="scope" value="${value}"${scope===value?' checked':''}><span>${label}</span></label>`).join('')}</fieldset>`}
+  <label class="research-query-label${home?' sr-only':''}" for="research-query">Topic or keyword</label>
+  <div class="research-query-wrap"><div class="research-input-row"><span aria-hidden="true">⌕</span><input type="search" id="research-query" name="q" value="${escape(query)}" maxlength="300" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="research-suggestions" aria-describedby="research-help"><button class="button" type="submit">Search</button></div><div id="research-suggestions" class="research-suggestions" role="listbox" aria-label="Suggested topics" hidden></div></div>
   <div id="research-selected" class="research-chips research-selected" aria-label="Selected search topics"></div>
-  <div class="research-form-footer"><p class="research-help" id="research-help">Type your own words or choose a suggested topic.</p>
+  <div class="research-form-footer"><p class="research-help" id="research-help"></p>
   <details class="research-advanced"${advanced?' open':''}><summary>Advanced search<span id="research-filter-count"></span></summary><div class="research-advanced-content">
    <fieldset class="research-filter-section" data-filter-scope="research"><legend>Research filters</legend><div class="research-advanced-grid">
     <label>Source<select id="research-source" name="source"><option value="">All sources</option>${sources.filter(s=>s.status!=='hidden').slice().sort((a,b)=>a.name.localeCompare(b.name)).map(s=>`<option value="${escape(s.id)}"${params.get('source')===s.id?' selected':''}>${escape(s.name)}</option>`).join('')}${params.get('source')&&!sources.some(s=>s.status!=='hidden'&&s.id===params.get('source'))?`<option value="${escape(params.get('source'))}" selected>${escape(sources.find(s=>s.id===params.get('source'))?.name||params.get('source'))}</option>`:''}</select></label>
@@ -152,7 +152,7 @@ export function bindResearch({params,sources=[],searchSources}){
   const runId=++sequence;controller?.abort();clearTimeout(requestTimer);clearTimeout(slowTimer);controller=new AbortController();
   dismissSuggestions();chips();updateScope();
   const requestParams=urlParams(),query=input.value.trim();setUrl(push,requestParams);
-  document.getElementById('research-help').textContent='Type your own words or choose a suggested topic.';
+  document.getElementById('research-help').textContent='';
   const collection=scope(),count=document.getElementById('research-count'),recordCount=document.getElementById('research-record-count');
   const matched=sourceMatches();if(collection==='sources')page=Math.min(page,Math.max(1,Math.ceil(matched.length/20)));
   renderSources(matched);document.getElementById('search-research-section').hidden=collection==='sources';
@@ -226,4 +226,4 @@ export function bindResearch({params,sources=[],searchSources}){
  chips();updateScope();if(advanced?.open)loadFilters();if(!home)run();
  return ()=>{disposed=true;sequence++;suggestSequence++;controller?.abort();tagController?.abort();filterController?.abort();clearTimeout(timer);clearTimeout(requestTimer);clearTimeout(slowTimer);form.removeEventListener('submit',submit);form.removeEventListener('change',change);input.removeEventListener('input',typing);input.removeEventListener('keydown',keyboard);input.removeEventListener('focus',suggest);main.removeEventListener('click',click);document.removeEventListener('click',outside);advanced?.removeEventListener('toggle',toggle);advancedSummary?.removeEventListener('click',markInterfaceDirty);window.removeEventListener('popstate',popstate);};
 }
-export async function refreshResearchTotal(){try{const response=await fetch('/api/research/stats');if(!response.ok)return;const data=await response.json();for(const element of document.querySelectorAll('[data-research-total]'))element.textContent=fmt(data.total);}catch{}}
+export async function refreshResearchTotal(){try{const response=await fetch('/api/research/stats');if(!response.ok)return;const data=await response.json();for(const element of document.querySelectorAll('[data-research-total]')){element.dataset.count=data.total;const label=element.parentElement?.querySelector('.sr-only');if(label&&element.closest('[data-stats]'))label.textContent=`${fmt(data.total)} research records`;if(!element.closest('.stats-animating'))element.textContent=fmt(data.total);}}catch{}}
