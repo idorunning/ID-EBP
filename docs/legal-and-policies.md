@@ -17,9 +17,13 @@ Supersedes `docs/privacy-notice-draft.md` as the public notice.
 ## Still to confirm operationally
 
 1. ICO data protection fee: check whether one is due (ico.org.uk/fee) and pay or record the exemption.
-2. Scheduled deletion that matches the published retention periods.
+2. Scheduled deletion that matches the published retention periods. The notice says that until this is automated, records are reviewed and deleted by hand at least every three months; audit events cannot be deleted by the app role, so this needs an admin task.
 3. Outreach emails must include an opt-out line and a suppression list must be checked before sending.
 4. French and Spanish users see a note that the English text applies; translate if needed.
+
+## Robots.txt
+
+Source checks (`inspectSource` in `backend/maintenance.mjs`) read robots.txt first for the `ID-EBP` agent and `*`. Disallowed pages, or a 5xx robots response, are recorded as `restricted` with `robotsDisallowed: true` and not read.
 
 ## Changing a policy
 

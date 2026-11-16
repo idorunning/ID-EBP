@@ -34,13 +34,51 @@ async function publicFetch(value,{fetcher=fetch,maxBytes=1048576}={}){
   throw Error('Too many redirects');
  },12000);
 }
+// robots.txt: honoured before any automated read of a source page. 2xx is parsed,
+// 4xx means no rules, anything else (5xx, timeout, unsafe redirect) means do not read.
+const ROBOTS_AGENT='id-ebp';
+const ROBOTS_NOTE='The website’s robots.txt does not permit automated reading of this page, so it was not checked. The listing has not been changed.';
+export function robotsAllows(text,path){
+ const groups=[];let current=null,lastWasAgent=false;
+ for(const raw of String(text).split(/\r?\n/)){
+  const line=raw.replace(/#.*/,'').trim();const m=line.match(/^([A-Za-z-]+)\s*:\s*(.*)$/);if(!m)continue;
+  const key=m[1].toLowerCase(),value=m[2].trim();
+  if(key==='user-agent'){if(!lastWasAgent){current={agents:[],rules:[]};groups.push(current);}current.agents.push(value.toLowerCase());lastWasAgent=true;continue;}
+  lastWasAgent=false;if(!current||!['allow','disallow'].includes(key))continue;
+  current.rules.push({allow:key==='allow',pattern:value});
+ }
+ const specific=groups.filter(g=>g.agents.some(a=>a===ROBOTS_AGENT));
+ const rules=(specific.length?specific:groups.filter(g=>g.agents.includes('*'))).flatMap(g=>g.rules);
+ let best=null;
+ for(const r of rules){
+  if(!r.pattern){continue;}
+  const END='\x24',anchored=r.pattern.endsWith(END),body=anchored?r.pattern.slice(0,-1):r.pattern;
+  const re=new RegExp('^'+body.split('*').map(x=>x.replace(/[.+?^{}()|[\]\\]/g,c=>'\\'+c).replace(/\x24/g,'\\x24')).join('.*')+(anchored?END:''));
+  if(re.test(path)&&(!best||r.pattern.length>best.pattern.length||(r.pattern.length===best.pattern.length&&r.allow)))best=r;
+ }
+ return best?best.allow:true;
+}
+async function robotsPermit(value,{fetcher=fetch}={}){
+ const url=new URL(value);
+ try{
+  const {response,bytes}=await publicFetch(url.origin+'/robots.txt',{fetcher,maxBytes:524288});
+  if(response.status>=400&&response.status<500)return 'allowed';
+  if(!response.ok)return 'disallowed';
+  return robotsAllows(new TextDecoder().decode(bytes),url.pathname+url.search)?'allowed':'disallowed';
+ }catch{return 'unreachable';}
+}
 function publicCandidate(value,base){try{return publicWebUrl(new URL(value,base).href);}catch{return null;}}
 const stripHtml=value=>String(value||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g,' ').trim();
 function tagAttributes(tag){return Object.fromEntries([...tag.matchAll(/([\w:-]+)\s*=\s*["']([^"']*)["']/g)].map(m=>[m[1].toLowerCase(),m[2]]));}
 export async function inspectSource(job,{fetcher=fetch,now=new Date()}={}){
  const base={checkedAt:now.toISOString(),duplicateCandidates:Number(job.duplicateUrls)||0,summaryPresent:Boolean(job.about?.trim()),suggestions:{},checks:['link','summary','public-contact','logo','duplicate']};
  try{
+  const target=publicWebUrl(job.url);if(!target)throw Error('Unsupported public URL');
+  const robots=await robotsPermit(target,{fetcher});
+  if(robots==='unreachable')throw Error('Website unreachable');
+  if(robots==='disallowed')return {...base,status:'restricted',robotsDisallowed:true,note:ROBOTS_NOTE};
   const {response,url,redirected,bytes}=await publicFetch(job.url,{fetcher});const status=response.status;
+  if(new URL(url).origin!==new URL(target).origin&&await robotsPermit(url,{fetcher})!=='allowed'){return {...base,status:'restricted',robotsDisallowed:true,httpStatus:status,finalUrl:url,note:ROBOTS_NOTE};}
   const result={...base,status:status>=200&&status<300?(redirected?'redirected':'working'):[401,403,429].includes(status)?'restricted':status===404?'not-found':'unreachable',httpStatus:status,finalUrl:url};
   if(!response.ok||!response.headers.get('Content-Type')?.includes('text/html'))return result;
   const html=new TextDecoder().decode(bytes),suggestions=result.suggestions;
