@@ -12,7 +12,7 @@ Supersedes `docs/privacy-notice-draft.md` as the public notice.
 - Outreach: organisational or role-based published addresses only; one invitation plus at most one follow-up; opt-out honoured and recorded.
 - Removal: a source listing and its attached records are removed at the owning organisation's request; target 10 working days.
 - Retention schedule as published on /privacy (30 days unconfirmed accounts and logs, 90 days ownership evidence, 12 months audit, 2 years correspondence, 6 years contribution records, backups within 12 months).
-- Contributions: https://buymeacoffee.com/thinkingaboutpolicing, worded as "Contribute to running costs"; no influence over listings; no Gift Aid.
+- Contributions: https://buymeacoffee.com/thinkingaboutpolicing (same page as TAP), worded as "Contribute to running costs"; support page explains ID-EBP is run in spare time and paid for personally by Nathan, with no grant, sponsor or advertising; no influence over listings; no Gift Aid. "Support ID-EBP" link in the top bar and footer.
 
 ## Still to confirm operationally
 

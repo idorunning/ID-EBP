@@ -33,7 +33,7 @@ export function tapSocial(cls='tap-social'){
 
 // Thin ownership strip that sits above the main header on every page.
 export function tapBar(){
- return `<div class="tap-bar"><div class="container tap-bar-inner"><a class="tap-bar-owner" href="/ownership">${tapMark(22)}<span class="tap-bar-long">ID-EBP is owned and run by <strong>${TAP.name}</strong></span><span class="tap-bar-short">A <strong>${TAP.name}</strong> project</span></a><div class="tap-bar-links"><a class="tap-bar-email" href="mailto:${TAP.email}">${TAP.email}</a>${tapSocial()}</div></div></div>`;
+ return `<div class="tap-bar"><div class="container tap-bar-inner"><a class="tap-bar-owner" href="/ownership">${tapMark(22)}<span class="tap-bar-long">ID-EBP is owned and run by <strong>${TAP.name}</strong></span><span class="tap-bar-short">A <strong>${TAP.name}</strong> project</span></a><div class="tap-bar-links"><a class="tap-bar-support" href="/support">Support ID-EBP</a><a class="tap-bar-email" href="mailto:${TAP.email}">${TAP.email}</a>${tapSocial()}</div></div></div>`;
 }
 
 // Lockup beside the ID-EBP logo in the main header (desktop only).

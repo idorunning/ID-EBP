@@ -1251,3 +1251,6 @@ Object.assign(COPY.es,{"ownershipTitle": "Titularidad", "ownershipText": "ID-EBP
 Object.assign(COPY.en,{directoryOnly:'Listings support the discovery of sources. They do not certify research quality or endorse interventions.'});
 Object.assign(COPY.fr,{directoryOnly:'Les fiches facilitent la recherche de sources. Elles ne certifient pas la qualité scientifique et ne recommandent pas d’intervention.'});
 Object.assign(COPY.es,{directoryOnly:'Las fichas ayudan a descubrir fuentes. No certifican la calidad científica ni recomiendan intervenciones.'});
+Object.assign(COPY.en,{supportLine:'ID-EBP is run in spare time and paid for personally by its editor. Voluntary contributions help keep it free and advert-free.'});
+Object.assign(COPY.fr,{supportLine:'ID-EBP est géré bénévolement et financé personnellement par son responsable. Les contributions volontaires l’aident à rester gratuit et sans publicité.'});
+Object.assign(COPY.es,{supportLine:'ID-EBP se gestiona en tiempo libre y lo financia personalmente su editor. Las contribuciones voluntarias ayudan a mantenerlo gratuito y sin publicidad.'});
