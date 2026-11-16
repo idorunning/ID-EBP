@@ -17,3 +17,17 @@ test('outbox acknowledges successful sends and holds failures without repeating 
  try{await runDirectoryTasks({DIRECTORY_API_URL:'https://fixture.supabase.co/functions/v1/directory-api',DIRECTORY_PROXY_SECRET:'local-fixture',WORKFLOW_NOTIFICATIONS_ENABLED:'true',EMAIL:{send:async message=>{sent.push(message);if(sent.length===2)throw Error('Uncertain provider response');return {messageId:'accepted'};}}});}finally{globalThis.fetch=original;}
  assert.equal(sent.length,2);assert.deepEqual(calls.filter(c=>c.action==='outbox-complete').map(c=>c.body.sent),[true,false]);assert.ok(calls.every(c=>c.headers['X-IDEBP-Internal']==='scheduled'));
 });
+
+test('source checks honour robots.txt before reading a page',async()=>{
+ const {robotsAllows,inspectSource:inspect}=await import('../backend/maintenance.mjs');
+ assert.equal(robotsAllows('User-agent: *\nDisallow: /private\n','/private/page'),false);
+ assert.equal(robotsAllows('User-agent: *\nDisallow: /private\n','/public'),true);
+ assert.equal(robotsAllows('User-agent: *\nDisallow: /\nAllow: /research$\n','/research'),true);
+ assert.equal(robotsAllows('User-agent: *\nAllow: /\n\nUser-agent: ID-EBP\nDisallow: /\n','/anything'),false);
+ assert.equal(robotsAllows('User-agent: *\nDisallow:\n','/x'),true);
+ const seen=[];const job={url:'https://public.org/research',about:''};
+ const blocked=await inspect(job,{fetcher:async url=>{seen.push(String(url));return String(url).endsWith('/robots.txt')?new Response('User-agent: *\nDisallow: /research',{headers:{'Content-Type':'text/plain'}}):new Response('<meta name="description" content="x">',{headers:{'Content-Type':'text/html'}});}});
+ assert.equal(blocked.status,'restricted');assert.equal(blocked.robotsDisallowed,true);assert.deepEqual(seen,['https://public.org/robots.txt']);assert.deepEqual(blocked.suggestions,{});
+ const failing=await inspect(job,{fetcher:async url=>String(url).endsWith('/robots.txt')?new Response('',{status:503}):new Response('<p>page</p>',{headers:{'Content-Type':'text/html'}})});
+ assert.equal(failing.status,'restricted');
+});
