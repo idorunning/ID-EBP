@@ -84,7 +84,8 @@ async function runBackup(env, when) {
 
 async function weeklySummary(env) {
   const list = await env.BACKUPS.list({ prefix: 'manifests/' });
-  const names = list.objects.map((x) => x.key).sort().slice(-7);
+  const since = new Date(Date.now() - 7 * 86400e3).toISOString().slice(0, 10);
+  const names = list.objects.map((x) => x.key).filter((k) => k.slice(10, 20) > since).sort();
   const rows = [];
   for (const k of names) { const m = await (await env.BACKUPS.get(k))?.json(); if (m) rows.push(`${k.slice(10, 20)}  ${(m.encrypted_bytes / 1e6).toFixed(1)} MB  sources ${m.counts['public.sources']}  records ${m.counts['public.research_records']}${m.low_counts?.length ? '  LOW' : ''}`); }
   await sendMail(env, 'ID-EBP backups: weekly summary', `Backups in the last 7 days (${rows.length} of 7):\n\n${rows.join('\n')}\n\nAll stored in Cloudflare R2 bucket idebp-backups (EU), encrypted with your backup key.`);

@@ -34,7 +34,7 @@ select old_row from private.research_record_history where record_id = 'IDEBP-R12
 
 **Rollback** of the guard (history is kept): `ops/rollback/20261116100605_database_safety_catch.down.sql`.
 
-Tests: `tests/ops/safety-catch.pglite.mjs` (21 cases). The migration was reviewed by an independent agent before it was applied, and all its findings were fixed.
+Tests: `tests/ops/safety-catch.pglite.mjs` (22 cases, including a fresh-session regression). A follow-up fix, `20261116102848_safety_catch_null_approval_fix`, makes an undefined transaction id count as not approved (found by Codex review; nothing got past the guard before it was fixed). The migration was reviewed by an independent agent before it was applied, and all its findings were fixed.
 
 ## 2. Nightly off-site backup
 

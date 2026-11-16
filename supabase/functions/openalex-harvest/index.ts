@@ -1,5 +1,6 @@
 // ID-EBP OpenAlex harvester. Writes ONLY to staging.* tables.
 // Settings (cron token, OpenAlex key, optional contact email) live in Supabase Vault.
+// v4: Crossref with no licence falls back to OpenAlex licence (Codex review).
 // v3: runs without an API key on OpenAlex's small keyless allowance;
 // add vault secret 'openalex_api_key' for the full free allowance.
 // Scheduled by pg_cron job 'openalex-harvest-nightly' (every 10 minutes, 00:00-00:59 UTC).
@@ -43,6 +44,8 @@ async function crossrefAccess(doi: string, contact: string): Promise<string | nu
     const j = await r.json();
     const lic: string[] = (j.message?.license ?? []).map((l: any) => String(l.URL ?? "").toLowerCase());
     if (lic.some((u) => u.includes("creativecommons.org"))) return "open";
+    // No licence metadata is not evidence either way: let the OpenAlex licence decide (open or unknown).
+    if (!lic.length) return null;
     return "paywalled";
   } catch { return null; }
 }

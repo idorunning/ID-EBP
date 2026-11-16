@@ -1,12 +1,17 @@
 import {PGlite} from '@electric-sql/pglite';
 import fs from 'node:fs';
+// Usage (from repo root): node tests/ops/safety-catch.pglite.mjs supabase/migrations/20261116100605_database_safety_catch.sql supabase/migrations/20261116102848_safety_catch_null_approval_fix.sql
 const db=new PGlite();
 await db.exec(`create schema private; create role anon; create role authenticated;
 create table public.sources(id uuid primary key default gen_random_uuid(), slug text, name text);
 create table public.research_records(id text primary key, title text, search_vector tsvector);
 insert into public.sources(slug,name) select 's'||g,'n'||g from generate_series(1,40) g;
 insert into public.research_records(id,title,search_vector) select 'R'||g,'t'||g,to_tsvector('x') from generate_series(1,700) g;`);
-await db.exec(fs.readFileSync(process.argv[2],'utf8'));
+for(const f of process.argv.slice(2))await db.exec(fs.readFileSync(f,'utf8'));
+// Regression (Codex P1): fresh session, reason set by hand, txid setting never defined.
+await db.exec(`set idebp.bulk_change_reason='session level reason, no allow call'`);
+try{await db.exec(`update public.research_records set title='fresh'`);console.log('FAIL fresh-session reason without allow_bulk_change bypassed the guard');}catch(e){console.log('ok   fresh-session reason without allow_bulk_change blocked');}
+await db.exec(`reset idebp.bulk_change_reason`);
 const t=async(name,sql,expectFail)=>{try{await db.exec('begin;'+sql+';commit;');console.log(expectFail?'FAIL':'ok  ',name);}catch(e){await db.exec('rollback');console.log(expectFail?'ok  ':'FAIL',name,'-',e.message.slice(0,110));}};
 await t('single source update',`update public.sources set name='x' where slug='s1'`);
 await t('25 source updates',`update public.sources set name='y' where slug in (select 's'||g from generate_series(1,25) g)`);
