@@ -84,7 +84,7 @@ async function processOne(item:any){
  await db.begin(async(tx:any)=>{
   await tx`update private.non_doi_enrichment_queue set publisher_status='verified',publisher_metadata=${tx.json(metadata)},publisher_evidence_url=${page.url},publisher_note='Original publisher title verified',publisher_updated_fields=${updated},publisher_attempted_at=now() where record_id=${rid}`;
   if(updated.length)await tx`update public.research_records set
-  authors=case when btrim(authors)='' or authors ~* '^(Not stated|Not specified|Unknown|Responsible organisation:)' then ${newA} else authors end,
+  authors=case when ${newA}::text <> '' and (btrim(authors)='' or authors ~* '^(Not stated|Not specified|Unknown|Responsible organisation:)') then ${newA} else authors end,
   year=coalesce(year,${m.year}),
   publication=case when btrim(publication)='' then ${m.publication} else publication end,
   doi=coalesce(doi,${m.doi}),

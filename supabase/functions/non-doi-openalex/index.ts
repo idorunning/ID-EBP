@@ -57,7 +57,7 @@ async function processOne(item:any,key:string){
  await db.begin(async(tx:any)=>{
    await tx`update private.non_doi_enrichment_queue set status='verified',metadata=${tx.json(data)},evidence_url=${w.id},note='Exact-title OpenAlex match with corroboration; original values preserved',updated_fields=${upd},processed_at=now() where record_id=${rid}`;
    if(upd.length)await tx`update public.research_records set
-     authors=case when btrim(authors)='' or authors ~* '^(Not stated|Not specified|Unknown|Responsible organisation:)' then ${authors} else authors end,
+     authors=case when ${authors}::text <> '' and (btrim(authors)='' or authors ~* '^(Not stated|Not specified|Unknown|Responsible organisation:)') then ${authors} else authors end,
      year=coalesce(year,${Number.isInteger(w.publication_year)?w.publication_year:null}),
      publication=case when btrim(publication)='' then ${publisher} else publication end,
      doi=coalesce(doi,${newDoi||null}),
