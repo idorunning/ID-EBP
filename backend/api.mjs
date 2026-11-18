@@ -317,9 +317,9 @@ export async function handleApi(request,env={},context={}){
       await rate('research-submission',actor.id,6,3600);
       const existing=await upstream('/rest/v1/research_records?select=id&url=eq.'+encodeURIComponent(urlValue)+'&limit=1',undefined,{service:true,method:'GET'});
       if(Array.isArray(existing)&&existing.length)fail(409,'already_submitted','This research is already in the catalogue.');
-      const saved=await upstream('/rest/v1/research_submissions?select=id,status',{submitter:actor.id,title,authors,publication_year:year,doi,url:urlValue,source_name,summary,tags},{service:true,method:'POST'});
-      // Prefer a response representation, rather than inferring success from an empty reply.
-      return reply({saved:true,status:'pending'},201);
+      const saved=await upstream('/rest/v1/research_submissions?select=id,status',{submitter:actor.id,title,authors,publication_year:year,doi,url:urlValue,source_name,summary,tags},{service:true,returnRepresentation:true});
+      if(!Array.isArray(saved)||saved.length!==1||saved[0].status!=='pending')fail(503,'service_unavailable','Submission confirmation unavailable. Check your submissions before retrying.');
+      return reply({saved:true,id:saved[0].id,status:'pending'},201);
     }
     if(path==='/api/research/submissions'&&method==='GET'){
       const records=await upstream('/rest/v1/research_submissions?select=id,title,authors,publication_year,doi,url,source_name,summary,tags,status,created_at&submitter=eq.'+encodeURIComponent(actor.id)+'&order=created_at.desc&limit=50',undefined,{service:true,method:'GET'});
