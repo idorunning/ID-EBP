@@ -5,7 +5,15 @@ function clean(s:string){return String(s??"").replace(/<[^>]*>/g," ").replace(/&
 function year(s:string){const m=String(s??"").match(/(?:18|19|20)\d{2}/);const y=m?Number(m[0]):null;return y&&y<=2027?y:null}
 function metaAttr(tag:string,name:string){const re=new RegExp("(?:^|\\s)"+name+"\\s*=\\s*(?:\\\"([^\\\"]*)\\\"|'([^']*)'|([^\\s>]+))","i");const m=tag.match(re);return m?clean(m[1]??m[2]??m[3]):""}
 function safeUrl(value:string){try{const u=new URL(value);if(!["http:","https:"].includes(u.protocol)||u.username||u.password)return null;const h=u.hostname.toLowerCase();if(!h.includes(".")||h==="localhost"||h.endsWith(".local")||h.endsWith(".internal")||h.endsWith(".test")||h.endsWith(".invalid")||h.endsWith(".example")||/^\d+\.\d+\.\d+\.\d+$/.test(h)||h.startsWith("[")||h==="metadata.google.internal")return null;return u.toString()}catch{return null}}
-function titleMatch(stored:string,remote:string){const a=norm(stored),b=norm(remote);if(!a||!b)return false;if(a===b)return true;if(a.length>=28&&(b.startsWith(a+" ")||b.startsWith(a+" the ")||b.startsWith(a+" research"))&&b.length< a.length*1.6)return true;const x=new Set(a.split(" ")),y=new Set(b.split(" "));const shared=[...x].filter(t=>y.has(t)).length;return x.size>=6&&shared/Math.max(x.size,y.size)>=.9}
+function titleMatch(stored:string,remote:string){
+ const a=norm(stored.replace(/&/g," and ")),b=norm(remote.replace(/&/g," and "));
+ if(!a||!b)return false;if(a===b)return true;
+ const words=a.split(" ");
+ if(words.length>=3 && b.startsWith(a+" ") && b.length<=a.length*3.5)return true;
+ const x=new Set(words),y=new Set(b.split(" "));
+ const shared=[...x].filter(t=>y.has(t)).length;
+ return x.size>=6 && b.startsWith(words.slice(0,2).join(" ")) && shared/x.size>=.92 && b.length<=a.length*3.5;
+}
 async function fetchPage(original:string){
  let u=safeUrl(original);if(!u)throw Error("Invalid or non-public URL");
  for(let n=0;n<3;n++){
