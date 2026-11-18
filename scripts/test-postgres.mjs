@@ -86,7 +86,7 @@ async function fingerprint(db){
   const tables=await value("select coalesce(jsonb_agg(jsonb_build_object('schema',n.nspname,'table',c.relname) order by n.nspname,c.relname),'[]') from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','private','auth') and c.relkind='r'",db);
   const result={};
   for(const table of tables){
-    assert.match(table.schema,/^[a-z_]+$/);assert.match(table.table,/^[a-z_]+$/);
+    assert.match(table.schema,/^[a-z_][a-z0-9_]*$/);assert.match(table.table,/^[a-z_][a-z0-9_]*$/);
     result[`${table.schema}.${table.table}`]=await value(`select jsonb_build_object('rows',count(*),'digest',md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' order by to_jsonb(t)::text),''))) from "${table.schema}"."${table.table}" t`,db);
   }
   return result;

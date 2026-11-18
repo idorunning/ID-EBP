@@ -1,0 +1,2 @@
+alter table private.doi_enrichment_queue add column if not exists datacite_status text not null default 'pending', add column if not exists datacite_attempts int not null default 0, add column if not exists datacite_claimed_at timestamptz, add column if not exists datacite_next_attempt_at timestamptz not null default now(), add column if not exists datacite_metadata jsonb;
+create index if not exists doi_datacite_state_idx on private.doi_enrichment_queue(datacite_status,status,datacite_next_attempt_at);

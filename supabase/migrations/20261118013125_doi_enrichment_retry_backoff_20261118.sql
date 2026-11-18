@@ -1,0 +1,2 @@
+alter table private.doi_enrichment_queue add column if not exists next_attempt_at timestamptz not null default now();
+create index if not exists doi_queue_next_attempt_idx on private.doi_enrichment_queue(status,next_attempt_at,batch_no);
