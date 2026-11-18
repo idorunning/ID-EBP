@@ -1,3 +1,4 @@
+import {trafficReports} from './traffic.mjs';
 // Same-origin API. No key, access token or refresh token is returned to browser JS.
 // This module runs unchanged in Cloudflare Workers or a Supabase Edge Function.
 const SESSION_COOKIE='__Host-idebp_session', LOGIN_COOKIE='__Host-idebp_login', CLAIM_COOKIE='__Host-idebp_claim';
@@ -371,7 +372,12 @@ export async function handleApi(request,env={},context={}){
     }
     if(path==='/api/admin/people'&&method==='GET')return reply(await rpc('admin_people',{},actor));
     if(path==='/api/admin/sources'&&method==='GET')return reply(await rpc('admin_sources',{},actor));
-    if(path==='/api/admin/analytics'&&method==='GET')return reply(await rpc('admin_analytics',{},actor));
+    if(path==='/api/admin/analytics'&&method==='GET') {
+       // The RPC checks the authenticated, active administrator account first.
+       const snapshot=await rpc('admin_analytics',{},actor);
+       const live=await trafficReports(env,url.searchParams.get('days'),{fetcher});
+       return reply({...snapshot,...live});
+     }
     if(path==='/api/admin/manage'&&method==='POST')return reply(await rpc('admin_manage',await jsonBody(request),actor));
     if(path==='/api/admin/review-status'&&method==='GET')return reply(await rpc('review_status',{kind:url.searchParams.get('kind'),id:url.searchParams.get('id')},actor));
     if(path==='/api/admin/review'&&method==='GET')return reply(await rpc('admin_review',{},actor));
