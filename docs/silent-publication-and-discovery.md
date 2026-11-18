@@ -73,3 +73,9 @@ select count(*) from public.research_search_documents;
 - New candidates must be checked and promoted through the established staging/review process before increasing published-source counts.
 - A live browser HTTP request and actual user-facing search/counter test is still required to confirm the end-to-end site, beyond Cloudflare routing and anonymous Supabase database access.
 - Metadata enrichment and independent evidence appraisal are separate tasks.
+
+## Outreach integration (18 November 2026)
+
+Source and research discovery now feeds a **separate, private outreach review queue**: `private.outreach_targets`, `private.outreach_contact_candidates`, `private.outreach_suppression` and `private.outreach_delivery_log`. The daily 03:40 UTC `outreach-target-refresh-daily` pg_cron job is enabled. It enrols existing and newly discovered research/source records and imports publicly linked `mailto:` suggestions from maintenance evidence as *unverified* contact candidates. A historical source-invitation draft is also staged privately for verification. See [source and research-owner outreach](outreach/research-owner-and-source-contact-process.md).
+
+**No automatic outbound emails are enabled.** Source organisations are first priority; named authors and individual publishers require a separate legal/consent check. Duplicate mailboxes, objections, withdrawn listings, uncertain send acknowledgements and the published contact policy must be respected. Production dispatch must use verified `hello@thinkingaboutpolicing.org` access, not authentication-code email, and must record confirmed sends. The existing Gmail connector failed on 18 November 2026; no successful send was confirmed.
