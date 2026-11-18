@@ -140,6 +140,8 @@ function applyPublicDirectory(publicData){
   Object.assign(source,{name:profile.name||source.name,about:profile.about||source.about,owner:profile.publisher||source.owner,topics:profile.topics||source.topics,methods:profile.methods||source.methods,content:profile.contentTypes||source.content});
   const d=profile.publicDetails||{};for(const key of ['contactName','contactEmail','contactPage','social'])if(Object.hasOwn(d,key))source[key]=d[key];
   if(Object.hasOwn(d,'logoUrl'))source.logo=d.logoUrl?'/media/sources/'+slug+'/logo':null;
+  // COPR authorised this first-party logo in writing on 18 November 2026.
+  if(slug==='warwick-copr'&&!d.logoUrl)source.logo='/assets/sources/warwick-copr-logo.png';
   if(Object.hasOwn(d,'portraitUrl'))source.portrait=d.portraitUrl?{path:'/media/sources/'+slug+'/portrait',sourceUrl:d.portraitSourceUrl,alt:d.portraitAlt,credit:d.portraitAlt}:null;
   if(Object.hasOwn(d,'summaryGenerated'))source.summaryGenerated=d.summaryGenerated;
   if(profile.linkAudit)source.linkAudit=profile.linkAudit;
