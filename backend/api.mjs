@@ -42,7 +42,7 @@ function settings(env){
     passwordIpLimit:boundedSetting(env.AUTH_PASSWORD_IP_LIMIT,120,12,240),emailIpLimit:boundedSetting(env.AUTH_EMAIL_IP_LIMIT,120,15,500),emailGlobalLimit:boundedSetting(env.AUTH_EMAIL_GLOBAL_LIMIT,150,25,150),emailDailyLimit:boundedSetting(env.AUTH_EMAIL_DAILY_LIMIT,150,25,150),verifyIpLimit:boundedSetting(env.AUTH_VERIFY_IP_LIMIT,120,20,500)};
 }
 
-async function upstreamJson(response){
+async function upstreamJson(response,{allowArray=false}={}){
   if(response.status===204)return {};
   const limit=4*1024*1024,reader=response.body?.getReader(),chunks=[];let size=0;
   const unavailable=()=>fail(503,'service_unavailable','The account service returned an incomplete response. Check the latest status before submitting again.');
@@ -51,7 +51,7 @@ async function upstreamJson(response){
     if(reader)for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>limit){await reader.cancel();unavailable();}chunks.push(value);}
   }catch{unavailable();}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
-  try{const value=JSON.parse(decoder.decode(bytes));if(value===null||typeof value!=='object')throw Error();return value;}
+  try{const value=JSON.parse(decoder.decode(bytes));if(value===null||typeof value!=='object'||(!allowArray&&Array.isArray(value)))throw Error();return value;}
   catch{if(response.ok)unavailable();return {};}
 }
 
@@ -87,7 +87,7 @@ export async function handleApi(request,env={},context={}){
     if(forwardedIp)headers['Sb-Forwarded-For']=forwardedIp;
     let response;
     try{response=await fetcher(config.base+path,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});}catch{fail(503,'service_unavailable','The account service is temporarily unavailable. Please try again.');}
-    const data=await upstreamJson(response);
+    const data=await upstreamJson(response,{allowArray:path.startsWith('/rest/v1/research_submissions')||path.startsWith('/rest/v1/research_records')});
     if(!response.ok){
       if(path==='/auth/v1/admin/generate_link'&&[400,404,422].includes(response.status))fail(400,'invalid_details','The account request could not be accepted.');
       if(data.code==='42501'||response.status===403){
