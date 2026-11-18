@@ -1,3 +1,4 @@
+create schema if not exists staging;
 -- Applied in production 18 November 2026. Staging-only background source discovery.
 create table if not exists staging.web_source_searches(
  id bigint generated always as identity primary key,
