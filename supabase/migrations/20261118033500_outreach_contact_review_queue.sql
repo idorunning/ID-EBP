@@ -130,5 +130,9 @@ where c.review_status='approved' and c.contact_kind in ('organisation','role')
 revoke all on private.outreach_eligible from public,anon,authenticated;
 
 -- Queue discovery is idempotent. This cron never sends email.
-select cron.schedule('outreach-target-refresh-daily','40 3 * * *',
- $$select private.refresh_outreach_queue()$$);
+do $schedule$
+begin
+ if to_regnamespace('cron') is not null and to_regprocedure('cron.schedule(text,text,text)') is not null then
+   perform cron.schedule('outreach-target-refresh-daily','40 3 * * *','select private.refresh_outreach_queue()');
+ end if;
+end $schedule$;
