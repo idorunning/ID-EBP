@@ -160,6 +160,11 @@ export async function handleApi(request,env={},context={}){
     if(!config.configured){if(path==='/api/session'&&method==='GET')return reply({user:null});if(path==='/api/community'&&method==='GET')return reply({sources:{}});fail(503,'setup_required','Member accounts are being connected. You can browse every source.');}
     if(!['GET','POST','PUT','PATCH','DELETE'].includes(method))fail(405,'method_not_allowed','This request method is not supported.');
     if(method!=='GET'){sameOrigin(request);if(Number(request.headers.get('Content-Length'))>16384)fail(413,'body_too_large','The submitted details are too long.');}
+    const resourceMatch=path.match(/^\/api\/sources\/([a-z0-9]+(?:-[a-z0-9]+)*)\/resources$/);
+    if(resourceMatch&&method==='GET') {
+      await authenticate(false);
+      return reply(await rpc('resource_list',{slug:resourceMatch[1]},user));
+    }
     if(path==='/api/session'&&method==='GET')return reply(await sessionData());
     if(path==='/api/community'&&method==='GET')return reply(publicCommunity(await rpc('community')));
     if(path==='/api/auth/request'&&method==='POST'){
@@ -337,6 +342,23 @@ export async function handleApi(request,env={},context={}){
       const body=await jsonBody(request);
       if(!/^[a-f0-9-]{36}$/i.test(body.id||'')||!['approved','rejected'].includes(body.decision))fail(400,'invalid_details','Select a valid submission and decision.');
       return reply(await upstream('/rest/v1/rpc/moderate_research_submission',{p_id:body.id,p_moderator:actor.id,p_decision:body.decision},{service:true}));
+    }
+    if(resourceMatch&&method==='POST'){
+      const body=await jsonBody(request);
+      if(!['annual_report','research','related_source','event','newsletter','other'].includes(body.type)
+        ||typeof body.title!=='string'||body.title.trim().length<5||body.title.length>240
+        ||typeof body.url!=='string'||!/^https:\/\/[^\s/]+/i.test(body.url)||body.url.length>2048
+        ||typeof body.description!=='string'||body.description.length>1200)
+        fail(400,'invalid_details','Enter a valid title, type, description and HTTPS link.');
+      await rate('resource-submit',actor.id,20,86400);
+      return reply(await rpc('resource_submit',{...body,slug:resourceMatch[1]},actor),202);
+    }
+    if(path==='/api/admin/resources'&&method==='GET')return reply(await rpc('resource_review_queue',{},actor));
+    if(path==='/api/admin/resources'&&method==='POST'){
+      const body=await jsonBody(request);
+      if(!/^[0-9a-f-]{36}$/i.test(body.id||'')||!['approved','rejected'].includes(body.decision))
+        fail(400,'invalid_details','Choose a valid resource and decision.');
+      return reply(await rpc('resource_moderate',body,actor));
     }
     if(path==='/api/sources'&&method==='POST')return reply(await rpc('submit_source',await jsonBody(request),actor),201);
     if(sourceMatch){
