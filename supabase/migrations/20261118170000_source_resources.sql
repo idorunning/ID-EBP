@@ -26,6 +26,8 @@ grant select,insert,update on private.source_resources to service_role;
 -- Review through the trusted directory RPC. No browser role can access the table.
 alter function public.directory_api(text,jsonb,uuid,uuid,text) rename to directory_before_resources;
 alter function public.directory_before_resources(text,jsonb,uuid,uuid,text) set schema private;
+revoke all on function private.directory_before_resources(text,jsonb,uuid,uuid,text) from public,anon,authenticated;
+grant execute on function private.directory_before_resources(text,jsonb,uuid,uuid,text) to service_role;
 create function public.directory_api(p_action text,p_payload jsonb default '{}'::jsonb,p_actor uuid default null,p_session uuid default null,p_assurance text default 'aal1')
 returns jsonb language plpgsql security invoker set search_path='' as $$
 declare src public.sources%rowtype; resource private.source_resources%rowtype; address text;
