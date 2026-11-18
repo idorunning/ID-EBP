@@ -24,11 +24,11 @@ insert into private.doi_enrichment_queue(record_id,batch_no,doi)
 select id, ((row_number() over(order by case when year is null or btrim(authors)='' then 0 else 1 end,id)-1)/500)::int+1, doi
 from public.research_records where doi is not null and btrim(doi)<>''
 on conflict(record_id) do nothing;
-do $$ begin
+do $enrichment_vault$ begin
  if to_regclass('vault.secrets') is not null then
   if not exists(select 1 from vault.secrets where name='doi_enrichment_cron_token') then
   perform vault.create_secret(encode(gen_random_bytes(32),'hex'),'doi_enrichment_cron_token','ID EBP DOI enrichment scheduler');
    end if;
  end if;
-end $;
+end $enrichment_vault$;
 revoke all on private.doi_enrichment_queue from anon,authenticated;
