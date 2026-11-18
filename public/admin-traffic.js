@@ -1,6 +1,6 @@
 // Admin-only presentation. Values are rendered only after the authenticated admin API responds.
 const html = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const integer = value => Number.isFinite(Number(value)) ? new Intl.NumberFormat('en-GB',{maximumFractionDigits:0}).format(Number(value)) : '—';
+const integer = value => value!==null && value!==undefined && Number.isFinite(Number(value)) ? new Intl.NumberFormat('en-GB',{maximumFractionDigits:0}).format(Number(value)) : '—';
 const date = value => {const d=new Date(value);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(d)+' UTC';};
 const isLive = value => value?.status==='connected';
 function status(value) {
