@@ -77,9 +77,10 @@ export async function handleApi(request,env={},context={}){
   const reply=(data,status=200)=>Response.json(data,{status,headers:responseHeaders});
   const fetcher=context.fetch||fetch;
   let current=null, user=null;
-  async function upstream(path,body,{token,service=false,method='POST'}={}){
+  async function upstream(path,body,{token,service=false,method='POST',returnRepresentation=false}={}){
     const authRequest=path.startsWith('/auth/v1/'),credential=authRequest&&config.authSecret?config.authSecret:service?config.secret:config.publicKey;
     const headers={apikey:credential,'Content-Type':'application/json'};
+    if(returnRepresentation)headers.Prefer='return=representation';
     if(token)headers.Authorization='Bearer '+token;
     else if(service&&credential.split('.').length===3)headers.Authorization='Bearer '+credential;
     const forwardedIp=authRequest&&config.authSecret&&config.forwardClientIp?trustedClientAddress(context):null;
