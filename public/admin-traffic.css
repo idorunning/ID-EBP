@@ -1,0 +1,50 @@
+/* Administrator analytics: neutral surfaces, burgundy data marks and explicit provider status. */
+.traffic-dashboard{--traffic-accent:#8c293e;--traffic-line:#dde1e5;--traffic-text:#20242b;--traffic-muted:#5c6470;color:var(--traffic-text);max-width:1280px}
+.traffic-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;margin:0 0 .7rem}
+.traffic-heading h2{font-size:clamp(1.6rem,2.5vw,2.2rem);margin:.1rem 0 .65rem;letter-spacing:-.03em}
+.traffic-heading p:last-child{max-width:68ch;line-height:1.55;color:var(--traffic-muted);margin:0}
+.traffic-range-label{display:flex;align-items:center;gap:.65rem;white-space:nowrap;color:#3b4350;font-size:.88rem;font-weight:700}
+.traffic-range-label select{border:1px solid #ccd2d9;border-radius:6px;padding:.65rem 2.1rem .65rem .65rem;background:#fff;color:inherit;font:inherit}
+.traffic-period{font-size:.82rem;color:var(--traffic-muted);margin:1rem 0 1.4rem}
+.traffic-loading{padding:1rem;border:1px solid var(--traffic-line);background:#f8f9fa;margin:1rem 0}
+.traffic-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:0 0 1.4rem}
+.traffic-metric{border:1px solid var(--traffic-line);border-radius:9px;padding:1.2rem 1.25rem;background:#fff;min-width:0}
+.traffic-metric>span{font-size:.82rem;font-weight:650;color:#59616c;display:block}
+.traffic-metric strong{font-size:clamp(1.7rem,2.9vw,2.7rem);line-height:1.3;letter-spacing:-.035em;display:block;margin:.35rem 0;font-variant-numeric:tabular-nums}
+.traffic-metric p{font-size:.73rem;line-height:1.4;margin:0;color:#6a7280}
+.traffic-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:1.9rem}
+.traffic-report{border:1px solid var(--traffic-line);background:#fff;border-radius:10px;padding:1.3rem 1.5rem;min-width:0}
+.traffic-report-wide{grid-column:1/-1}
+.traffic-report-head,.traffic-provider-head{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start}
+.traffic-report-head h3,.traffic-provider h3{margin:0;font-size:1.12rem}
+.traffic-report-head .eyebrow{margin:0 0 .35rem;font-size:.7rem;color:var(--traffic-accent)}
+.traffic-report h4{font-size:.88rem;margin:1.2rem 0 .65rem}
+.traffic-chart{margin:1rem 0 .5rem}
+.traffic-chart svg{display:block;width:100%;height:auto;max-height:190px;overflow:visible}
+.traffic-chart figcaption{display:flex;justify-content:space-between;gap:.5rem;font-size:.72rem;color:var(--traffic-muted);margin:.25rem 0 .6rem}
+.traffic-no-chart{min-height:155px;border:1px dashed #d3d8de;background:#f8f9fa;display:grid;place-items:center;color:#656d78;text-align:center;padding:1rem;font-size:.83rem;margin:1rem 0}
+.traffic-top-list{list-style:none;padding:0;margin:0;counter-reset:popular}
+.traffic-top-list li{display:flex;justify-content:space-between;gap:1rem;border-bottom:1px solid #eceef0;padding:.6rem 0;min-width:0;font-size:.84rem}
+.traffic-top-list li>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.traffic-top-list li strong{flex:none;font-variant-numeric:tabular-nums}
+.traffic-empty{font-size:.84rem;color:var(--traffic-muted)}
+.traffic-search-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:2rem}
+.traffic-detail-metrics{display:flex;flex-wrap:wrap;gap:8px;margin:1rem 0 .3rem}
+.traffic-detail-metrics span{display:inline-flex;justify-content:space-between;gap:1rem;align-items:center;flex:1 1 135px;padding:.7rem .85rem;border-radius:5px;background:#f6f7f8;font-size:.78rem;color:#56606d}
+.traffic-detail-metrics b{color:#20242b;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.traffic-state{white-space:nowrap;display:inline-flex;padding:.3rem .55rem;border-radius:4px;background:#eff0f2;color:#4d5661;font-size:.7rem;font-weight:750}
+.traffic-state-ok{background:#e7f4ed;color:#1c6840}
+.traffic-state-error{background:#fbedea;color:#944333}
+.traffic-sources-title{font-size:1.1rem;margin:1.8rem 0 1rem}
+.traffic-providers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.traffic-provider{border:1px solid var(--traffic-line);border-radius:8px;padding:1.25rem;background:#fafbfc}
+.traffic-provider p{font-size:.83rem;line-height:1.55;color:#4f5864}
+.traffic-provider .traffic-meta{font-size:.75rem;color:#66707b}
+.traffic-setup{border-left:3px solid #8c293e;padding-left:.75rem;overflow-wrap:anywhere}
+.traffic-external{font-size:.83rem;font-weight:650;color:#7e2639}
+.traffic-disclaimer{font-size:.78rem;line-height:1.55;color:#636c77;margin:1.5rem 0 0;max-width:95ch}
+.admin-tabs a{display:inline-flex;align-items:center;text-decoration:none;font:inherit;padding:12px 15px;border:1px solid #d8d9dc;border-radius:4px;background:#fff;color:#343b44}
+.admin-tabs a[aria-current]{background:#eaf2fa;border-color:#316ca6;color:#225f9c;font-weight:750}
+.admin-tabs a:focus-visible,.traffic-range-label select:focus-visible{outline:3px solid #316ca6;outline-offset:2px}
+@media(max-width:950px){.traffic-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.traffic-search-layout{grid-template-columns:1fr}}
+@media(max-width:660px){.traffic-heading{flex-direction:column}.traffic-range-label{align-self:flex-start}.traffic-report-grid,.traffic-providers,.traffic-metrics{grid-template-columns:1fr}.traffic-report-wide{grid-column:auto}.traffic-report{padding:1rem}.traffic-provider-head{flex-wrap:wrap}}
