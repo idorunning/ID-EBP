@@ -25,8 +25,10 @@ select id, ((row_number() over(order by case when year is null or btrim(authors)
 from public.research_records where doi is not null and btrim(doi)<>''
 on conflict(record_id) do nothing;
 do $$ begin
- if not exists(select 1 from vault.secrets where name='doi_enrichment_cron_token') then
+ if to_regclass('vault.secrets') is not null then
+  if not exists(select 1 from vault.secrets where name='doi_enrichment_cron_token') then
   perform vault.create_secret(encode(gen_random_bytes(32),'hex'),'doi_enrichment_cron_token','ID EBP DOI enrichment scheduler');
+   end if;
  end if;
-end $$;
+end $;
 revoke all on private.doi_enrichment_queue from anon,authenticated;
