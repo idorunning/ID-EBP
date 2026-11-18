@@ -302,6 +302,41 @@ export async function handleApi(request,env={},context={}){
       await upstream('/auth/v1/logout?scope=local',undefined,{token:current.access});
       responseHeaders.append('Set-Cookie',cookie(SESSION_COOKIE,'',0));return reply({user:null});
     }
+    if(path==='/api/research/submissions'&&method==='POST'){
+      const body=await jsonBody(request);
+      const title=String(body.title||'').trim(),authors=String(body.authors||'').trim();
+      const doi=String(body.doi||'').trim().replace(/^https?:\/\/(?:dx\.)?doi\.org\//i,'').toLowerCase()||null;
+      const urlValue=String(body.url||'').trim(),source_name=String(body.sourceName||'').trim();
+      const summary=String(body.summary||'').trim(),year=body.year?Number(body.year):null;
+      const tags=Array.isArray(body.tags)?[...new Set(body.tags.map(v=>String(v).trim().toLowerCase()))]:[];
+      if(title.length<5||title.length>300||authors.length<2||authors.length>1000||doi&&(!/^10\.\d{4,9}\/[\w.();/:+-]+$/i.test(doi)||doi.length>250)
+        ||!/^https:\/\/[^\s/]+/.test(urlValue)||urlValue.length>2048||source_name.length>200||summary.length>3000
+        ||year!==null&&(!Number.isInteger(year)||year<1600||year>2100)||tags.length>10||tags.some(v=>v.length>100))
+        fail(400,'invalid_details','Check the research details and try again.');
+      await rate('research-submission',actor.id,6,3600);
+      const existing=await upstream('/rest/v1/research_records?select=id&url=eq.'+encodeURIComponent(urlValue)+'&limit=1',undefined,{service:true,method:'GET'});
+      if(Array.isArray(existing)&&existing.length)fail(409,'already_submitted','This research is already in the catalogue.');
+      const saved=await upstream('/rest/v1/research_submissions?select=id,status',{submitter:actor.id,title,authors,publication_year:year,doi,url:urlValue,source_name,summary,tags},{service:true,method:'POST'});
+      // Prefer a response representation, rather than inferring success from an empty reply.
+      return reply({saved:true,status:'pending'},201);
+    }
+    if(path==='/api/research/submissions'&&method==='GET'){
+      const records=await upstream('/rest/v1/research_submissions?select=id,title,authors,publication_year,doi,url,source_name,summary,tags,status,created_at&submitter=eq.'+encodeURIComponent(actor.id)+'&order=created_at.desc&limit=50',undefined,{service:true,method:'GET'});
+      return reply({submissions:records});
+    }
+    if(path==='/api/admin/research-submissions'&&method==='GET'){
+      const session=await rpc('session',{},actor);
+      if(session.admin!==true)fail(403,'admin_required','Administrator access is required.');
+      const items=await upstream('/rest/v1/research_submissions?select=id,title,authors,publication_year,doi,url,source_name,summary,tags,created_at,status&status=eq.pending&order=created_at.asc&limit=100',undefined,{service:true,method:'GET'});
+      return reply({submissions:items});
+    }
+    if(path==='/api/admin/research-submissions'&&method==='POST'){
+      const session=await rpc('session',{},actor);
+      if(session.admin!==true)fail(403,'admin_required','Administrator access is required.');
+      const body=await jsonBody(request);
+      if(!/^[a-f0-9-]{36}$/i.test(body.id||'')||!['approved','rejected'].includes(body.decision))fail(400,'invalid_details','Select a valid submission and decision.');
+      return reply(await upstream('/rest/v1/rpc/moderate_research_submission',{p_id:body.id,p_moderator:actor.id,p_decision:body.decision},{service:true}));
+    }
     if(path==='/api/sources'&&method==='POST')return reply(await rpc('submit_source',await jsonBody(request),actor),201);
     if(sourceMatch){
       const [,slug,kind]=sourceMatch;
