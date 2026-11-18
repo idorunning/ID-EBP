@@ -1,3 +1,11 @@
+-- Older catalogue migrations pre-date the live bibliographic metadata columns.
+-- Add them idempotently for fresh installations before seeding enrichment queues.
+alter table public.research_records
+ add column if not exists doi text,
+ add column if not exists year integer,
+ add column if not exists kind_std text,
+ add column if not exists access_std text;
+
 create table if not exists private.doi_enrichment_queue (
  record_id text primary key references public.research_records(id) on delete cascade,
  batch_no int not null,
