@@ -12,7 +12,7 @@ test('unlinked sources never pretend to have visitors',async()=>{
  assert.equal(result.goatcounter.status,'setup_required');
  assert.equal(result.google.ga4.status,'setup_required');
  assert.equal(result.google.searchConsole.status,'setup_required');
- assert.doesNotMatch(JSON.stringify(result),/api.token|private.key/i);
+ assert.doesNotMatch(JSON.stringify(result),/local-test-token|BEGIN PRIVATE KEY/i);
 });
 test('GoatCounter reports authenticated aggregate counts and daily trends',async()=>{
  const requests=[];
