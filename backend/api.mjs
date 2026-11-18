@@ -51,7 +51,7 @@ async function upstreamJson(response){
     if(reader)for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>limit){await reader.cancel();unavailable();}chunks.push(value);}
   }catch{unavailable();}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
-  try{const value=JSON.parse(decoder.decode(bytes));if(!value||Array.isArray(value)||typeof value!=='object')throw Error();return value;}
+  try{const value=JSON.parse(decoder.decode(bytes));if(value===null||typeof value!=='object')throw Error();return value;}
   catch{if(response.ok)unavailable();return {};}
 }
 
