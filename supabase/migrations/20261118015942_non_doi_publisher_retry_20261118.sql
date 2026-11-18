@@ -1,0 +1,2 @@
+alter table private.non_doi_enrichment_queue add column if not exists publisher_attempts integer not null default 0, add column if not exists publisher_next_attempt_at timestamptz not null default now();
+create index if not exists non_doi_publisher_retry_idx on private.non_doi_enrichment_queue(publisher_status,publisher_next_attempt_at,record_id);
