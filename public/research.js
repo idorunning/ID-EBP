@@ -1,3 +1,4 @@
+import {catalogueTotal} from './live-stats.js';
 import {topicSuggestions,planSearch,normaliseSearch} from './search-topics.js';
 
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -226,4 +227,19 @@ export function bindResearch({params,sources=[],searchSources}){
  chips();updateScope();if(advanced?.open)loadFilters();if(!home)run();
  return ()=>{disposed=true;sequence++;suggestSequence++;controller?.abort();tagController?.abort();filterController?.abort();clearTimeout(timer);clearTimeout(requestTimer);clearTimeout(slowTimer);form.removeEventListener('submit',submit);form.removeEventListener('change',change);input.removeEventListener('input',typing);input.removeEventListener('keydown',keyboard);input.removeEventListener('focus',suggest);main.removeEventListener('click',click);document.removeEventListener('click',outside);advanced?.removeEventListener('toggle',toggle);advancedSummary?.removeEventListener('click',markInterfaceDirty);window.removeEventListener('popstate',popstate);};
 }
-export async function refreshResearchTotal(){try{const response=await fetch('/api/research/stats');if(!response.ok)return;const data=await response.json();for(const element of document.querySelectorAll('[data-research-total]')){element.dataset.count=data.total;const label=element.parentElement?.querySelector('.sr-only');if(label&&element.closest('[data-stats]'))label.textContent=`${fmt(data.total)} research records`;if(!element.closest('.stats-animating'))element.textContent=fmt(data.total);}}catch{}}
+export async function refreshResearchTotal(){
+ try{
+  const response=await fetch('/api/research/stats',{cache:'no-store'});
+  if(!response.ok)return null;
+  const data=await response.json();
+  const total=catalogueTotal(data);
+  if(total===null)return null;
+  for(const element of document.querySelectorAll('[data-research-total]')){
+   element.dataset.count=String(total);
+   const label=element.parentElement?.querySelector('.sr-only');
+   if(label&&element.closest('[data-stats]'))label.textContent=fmt(total)+' research records';
+   if(!element.closest('.stats-animating'))element.textContent=fmt(total);
+  }
+  return total;
+ }catch{return null;}
+}

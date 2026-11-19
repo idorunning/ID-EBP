@@ -48,7 +48,7 @@ export function tapOwnership(){
 
 // Replaces the plain "Add a source" callout: invites research owners to claim listings.
 export function tapClaimCallout(button){
- return `<section class="container source-callout tap-claim"><div><p class="eyebrow">For research owners</p><h2>Own or publish policing research?</h2><p>Claim your listing, correct your details or suggest a new source. Do it online, or email <a href="mailto:${TAP.email}">${TAP.email}</a> and we will set it up for you.</p></div><div class="button-row">${button('Claim or add a source'+ARROW,'/source-workspace')}${button('Email us',`mailto:${TAP.email}`,'button button-outline')}</div></section>`;
+ return `<section class="container source-callout tap-claim"><div><p class="eyebrow">For research owners</p><h2>Keep your research listing accurate</h2><p>If your institute, organisation or research source is listed, register free to verify and update its details. If it is missing, you can submit a new listing for review. You can also contact <a href="mailto:${TAP.email}">${TAP.email}</a>.</p></div><div class="button-row">${button('Verify your listing','/source-workspace')}${button('Add an institute or organisation','/source-workspace?add=1','button button-outline')}</div></section>`;
 }
 
 export function tapFooterOwner(){
