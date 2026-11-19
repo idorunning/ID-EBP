@@ -167,6 +167,16 @@ export async function handleApi(request,env={},context={}){
     if(!config.configured){if(path==='/api/session'&&method==='GET')return reply({user:null});if(path==='/api/community'&&method==='GET')return reply({sources:{}});fail(503,'setup_required','Member accounts are being connected. You can browse every source.');}
     if(!['GET','POST','PUT','PATCH','DELETE'].includes(method))fail(405,'method_not_allowed','This request method is not supported.');
     if(method!=='GET'){sameOrigin(request);if(Number(request.headers.get('Content-Length'))>16384)fail(413,'body_too_large','The submitted details are too long.');}
+    // Only the trusted Cloudflare proxy can report email transport outcomes.
+    // Browser-supplied internal headers are stripped by the Worker.
+    if(path==='/api/funnel/mail-status'&&method==='POST'){
+      if(context.trustedTask!==true)fail(403,'forbidden','This request is restricted.');
+      const body=await jsonBody(request);
+      if(!['auth_mail_accepted','auth_mail_failed','claim_mail_accepted','claim_mail_failed'].includes(body.event))
+        fail(400,'invalid_details','Unsupported event.');
+      const recorded=await recordFunnel(body.event);
+      return reply({recorded},recorded?200:503);
+    }
     if(path==='/api/funnel/event'&&method==='POST'){
       const body=await jsonBody(request);
       if(!['verify_click','register_view','claim_view'].includes(body.event))
