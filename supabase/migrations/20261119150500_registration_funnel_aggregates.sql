@@ -7,7 +7,9 @@ create table if not exists private.registration_funnel_daily (
     'register_code_issued','claim_code_issued',
     'signin_code_verified','claim_submitted',
     'auth_request_failed','claim_request_failed',
-    'signin_verify_failed','claim_submit_failed'
+    'signin_verify_failed','claim_submit_failed',
+    'auth_mail_accepted','auth_mail_failed',
+    'claim_mail_accepted','claim_mail_failed'
   )),
   count bigint not null default 0 check (count >= 0),
   updated_at timestamptz not null default now(),
@@ -25,7 +27,9 @@ begin
    'register_code_issued','claim_code_issued',
    'signin_code_verified','claim_submitted',
    'auth_request_failed','claim_request_failed',
-   'signin_verify_failed','claim_submit_failed'
+   'signin_verify_failed','claim_submit_failed',
+    'auth_mail_accepted','auth_mail_failed',
+    'claim_mail_accepted','claim_mail_failed'
  ) or p_event is null then
    raise exception 'Unsupported aggregate metric' using errcode='22023';
  end if;
