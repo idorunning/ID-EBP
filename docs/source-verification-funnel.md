@@ -11,15 +11,15 @@ This is an operator-facing measurement of how people move through the existing h
 | `register_view` | Visitor opens /register | Page entries, not unique people |
 | `register_code_issued` | Supabase has generated a code after a Join the community request | Generation is not confirmation that email was accepted or delivered |
 | `claim_code_issued` | Supabase has generated a source-claim code | Generation is not confirmed email delivery |
-| `signin_code_verified` | An email login/registration code has been accepted | Includes existing members; not equivalent to new registrations |
+| `auth_mail_accepted`, `claim_mail_accepted` | Cloudflare accepted the corresponding transactional email | Provider acceptance is not evidence of inbox delivery |\n| `auth_mail_failed`, `claim_mail_failed` | Cloudflare rejected or failed while sending the code email | Distinguishes transport problems from code generation |\n| `signin_code_verified` | An email login/registration code has been accepted | Includes existing members; not equivalent to new registrations |
 | `claim_submitted` | The claim has been committed for administrator review | Claims may still be awaiting authority checks |
-| `auth_request_failed`, `claim_request_failed`, `signin_verify_failed`, `claim_submit_failed` | The relevant API request failed | Does not include a Cloudflare Email Delivery exception after API code generation |
+| `auth_request_failed`, `claim_request_failed`, `signin_verify_failed`, `claim_submit_failed` | The relevant API request failed | Reported separately from Cloudflare email-transport acceptance or errors |
 
 The read-only admin report also counts newly created `auth.users`, source claims committed within the period, claims approved within the period and outstanding claims (current status).
 
 ## Data minimisation and access
 
-Only a UTC calendar date, an allowlisted event name, an aggregate counter and an update timestamp are stored in `private.registration_funnel_daily`. No email address, IP, source ID, member ID, token, visitor or session identifier is saved in funnel analytics. The existing security rate limiter uses a keyed IP-derived hash in its separate operational records, subject to the existing service access restrictions. The public event endpoint accepts only three benign view/click events, checks same-origin and enforces a shared-IP request budget. Server events cannot be submitted as public click events.
+Only a UTC calendar date, an allowlisted event name, an aggregate counter and an update timestamp are stored in `private.registration_funnel_daily`. No email address, IP, source ID, member ID, token, visitor or session identifier is saved in funnel analytics. The existing security rate limiter uses a keyed IP-derived hash in its separate operational records, subject to the existing service access restrictions. The public event endpoint accepts only three benign view/click events, checks same-origin and enforces a shared-IP request budget. Server events cannot be submitted as public click events. A separate same-origin endpoint accepts email-transport outcomes only when the protected Cloudflare Worker has set a trusted internal request marker; browser-supplied markers are stripped before proxying.
 
 The table enables RLS, has no anonymous or authenticated grants and is only accessible through service-role-only RPCs. The administrator must pass the existing role and session checks before the report is returned. All displays label incomplete configuration as unavailable rather than a misleading zero.
 
