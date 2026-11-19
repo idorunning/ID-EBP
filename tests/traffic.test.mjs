@@ -68,3 +68,19 @@ test('dashboard escapes data from external page titles and queries',()=>{
  assert.ok(!markup.includes('<script>'));
  assert.ok(markup.includes('data-traffic-range'));
 });
+
+test('private registration funnel distinguishes requests, verified accounts and moderation',()=>{
+ const output=renderAdminTraffic({authorised:true,range:{startDate:'2026-11-12',endDate:'2026-11-18'},funnel:{
+  status:'connected',startDate:'2026-11-12',endDate:'2026-11-19',
+  totals:{verify_click:8,claim_view:6,register_view:5,register_code_issued:3,claim_code_issued:2,signin_code_verified:1,claim_request_failed:1},
+  newAccounts:1,claimsSubmitted:1,claimsApproved:0,claimsPending:1,
+  daily:[{date:'2026-11-19',event:'verify_click',count:8}]
+ }},{days:7});
+ for(const label of ['Registration and verification funnel','Source-claim codes issued','New member accounts','Claims awaiting review','Where failures occur'])
+   assert.ok(output.includes(label),label);
+ assert.ok(output.includes('including today'));
+ assert.ok(output.includes('Clicks, not unique people'));
+ assert.ok(!output.includes('undefined'));
+ const offline=renderAdminTraffic({authorised:true,funnel:{status:'unavailable'}});
+ assert.ok(offline.includes('Not yet connected'));
+});
