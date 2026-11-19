@@ -94,3 +94,60 @@ To pause a scheduled job without discarding its queue or schedule, use `cron.alt
 ## Definition of finished
 
 All eligible records have a terminal, evidence-backed disposition: verified; inapplicable resource; or documented unresolved exception. Missing-but-inapplicable fields should be marked as such, not populated with invented values. Check website search and counters separately from database completeness. Full evidence appraisal requires a separate review programme.
+
+## Advance research records to sign-off
+
+Run from the repository with Node.js 22+ and `psql`. Use an authorised database connection via
+`PGSERVICE`/`PGPASSFILE` or standard PostgreSQL connection environment variables. Do not place a
+password in the command line or in a review file.
+
+```sh
+node scripts/advance-research-stages.mjs
+node scripts/advance-research-stages.mjs --details > /path/to/stage-review-queue.json
+node scripts/advance-research-stages.mjs --apply --advance --reviews /path/to/reviewed-records.json
+```
+
+The default run is read-only and gives the highest documented stage per record, with a count for each
+blocker. Blockers can overlap. `--details` exports the records, their fingerprints and their outstanding
+checks. `--advance` screens the outstanding Stage 1 records and, when the existing worker is eligible,
+dispatches one publisher/registry batch. It uses the existing lease and publishes its batch ID on
+standard error. The catalogue's usual schedule continues processing later runs.
+
+Use the details export to prepare a JSON array of reviewed records. A reviewer should check each
+current field against the evidence supplied. `primary` is convenient when one source supports every
+field. Add per-field URLs where the evidentiary sources differ. The supported field keys are
+`title`, `authors`, `year`, `source`, `summary`, `tags` and `url`.
+
+```json
+[
+  {
+    "id": "IDEBP-R1234",
+    "fingerprint": "00000000000000000000000000000000",
+    "reviewer": "Named reviewer",
+    "evidence": {
+      "primary": "https://example.org/research/report",
+      "source": "https://example.org/research"
+    },
+    "final": {
+      "relevance_evidence": "https://example.org/research/report",
+      "duplicate_reviewed": true,
+      "checked_url": "https://example.org/research/report",
+      "link_verified_at": "2026-11-19T20:00:00Z"
+    }
+  }
+]
+```
+
+The example is illustrative. Copy the current record fingerprint from the export and use the actual
+review date and evidence. Omit `final` to record Stage 4 only. For a qualifying non-publication resource
+with no applicable year, provide `year_not_applicable: {"reason":"…" }` and supporting year evidence.
+Resolve outstanding review and duplicate flags through the existing assurance workflow. Apply any
+reviewed catalogue corrections through the established catalogue workflow before exporting the
+fingerprint again.
+
+Stage 4 uses current publication evidence, published source attribution, meaningful metadata and
+reviewer-supplied field evidence. The script treats known catalogue placeholder summaries as missing.
+Stage 5 additionally requires a current reviewer link check, relevance evidence, duplicate review,
+no open assurance issues, a current search index and an exact record match on ID-EBP's live search.
+It records the gate outcomes as an assurance checkpoint. A changed catalogue row requires a fresh
+review, and repeating a successfully applied run creates no duplicate checkpoint.
