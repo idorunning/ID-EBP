@@ -8,6 +8,7 @@ import {searchSources,signals,safeUrl} from './ranking.js';
 import {bindSourceCarousels} from './source-carousels.js';
 import {primaryCategory,uniqueSources} from './home-categories.js';
 import {bindReach} from './reach.js';
+import {publishedCoverage,liveStatsState} from './live-stats.js';
 import {logoMarkup} from './brand.js';
 import {TAP,tapBar,tapOwnership,tapClaimCallout,tapFooterOwner,tapFooterColumn,tapHeaderLockup} from './tap.js';
 import {legalPage,legalIndex,supportPage,LEGAL_DOCS,SUPPORT_URL} from './legal.js';
@@ -28,8 +29,9 @@ function refreshLiveIndicator(){
  const element=document.querySelector('[data-stats-live]');
  if(!element)return;
  const checked=Math.min(sourceStatsCheckedAt||0,researchStatsCheckedAt||0);
- const fresh=checked&&Date.now()-checked<150000;
- element.dataset.state=fresh?'live':checked?'delayed':'checking';
+ const state=liveStatsState(sourceStatsCheckedAt,researchStatsCheckedAt);
+ const fresh=state==='live';
+ element.dataset.state=state;
  element.textContent=fresh?'Live':checked?'Last updated':'Checking…';
  element.title=fresh?'Figures fetched from the published directory and research catalogue. Refreshed automatically.':checked?'The last successful refresh was over two minutes ago.':'Waiting for a successful database refresh.';
 }
@@ -182,8 +184,7 @@ function applyPublicDirectory(publicData){
   if(profile.languages)source.languages=profile.languages.map(code=>({zh:'Mandarin Chinese',no:'Norwegian',mi:'Māori'}[code]||languageNames.of(code)));
  }
  if(publicDirectoryIsAuthoritative()){
-  const profiles=Object.values(publicData).map(entry=>entry?.profile).filter(Boolean);
-  liveSourceTotals={sources:profiles.length,countries:new Set(profiles.map(profile=>profile.country).filter(Boolean)).size};
+  liveSourceTotals=publishedCoverage(publicData);
   sourceStatsCheckedAt=Date.now();
   updateHomeCount('[data-sources-total]',liveSourceTotals.sources,'sources');
   updateHomeCount('[data-countries-total]',liveSourceTotals.countries,'countries');
