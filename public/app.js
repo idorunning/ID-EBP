@@ -130,8 +130,21 @@ function refreshSourceSignals(){
  for(const source of sources){const summary=getContributionSummary(source.id);source.communityTags=summary.tags||[];source.ratingAverage=summary.ratingAverage;source.ratingCount=summary.ratingCount;source.signals={...source.signals,domainConfirmed:Boolean(summary.domainConfirmed),organisationConfirmed:Boolean(summary.organisationConfirmed)};}
 }
 let disposeResearch=()=>{};let disposeCarousels=()=>{};let renderedPath='';let publicFormDirty=false;
+let lastFunnelRoute='';
+function recordPublicFunnel(event){
+  // Counts only a fixed event name, never a visitor, account, email or source ID.
+  fetch('/api/funnel/event',{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({event})}).catch(()=>{});
+}
+function countFunnelPage(path,params){
+  const key=path+'?'+params.toString();
+  if(lastFunnelRoute!==key){
+    if(path==='/register')recordPublicFunnel('register_view');
+    else if(path==='/source-workspace'&&params.get('add')!=='1')recordPublicFunnel('claim_view');
+  }
+  lastFunnelRoute=key;
+}
 function renderBackgroundUpdate(){if(!isMemberPath(route().path)&&!publicFormDirty)render();}
-function render(){if(waitingForInitialProfile&&route().path===initialProfilePath)return;const sameRoute=renderedPath===location.pathname+location.search;const scrolls=sameRoute?[...document.querySelectorAll('.source-track')].map(e=>[e.id,e.scrollLeft]):[];const active=document.activeElement;const activeSave=sameRoute&&active?.classList.contains('save-action')?{id:active.dataset.id,track:active.closest('.source-track')?.id}:null;disposeResearch();disposeCarousels();refreshSourceSignals();const {path,params}=route();document.documentElement.lang=lang==='en'?'en-GB':lang;let page;
+function render(){if(waitingForInitialProfile&&route().path===initialProfilePath)return;const sameRoute=renderedPath===location.pathname+location.search;const scrolls=sameRoute?[...document.querySelectorAll('.source-track')].map(e=>[e.id,e.scrollLeft]):[];const active=document.activeElement;const activeSave=sameRoute&&active?.classList.contains('save-action')?{id:active.dataset.id,track:active.closest('.source-track')?.id}:null;disposeResearch();disposeCarousels();refreshSourceSignals();const {path,params}=route();countFunnelPage(path,params);document.documentElement.lang=lang==='en'?'en-GB':lang;let page;
 if(path.startsWith('/sources/')){const category={societies:'EBP society',universities:'University',researchers:'Researcher',blogs:'Blog',independent:'Independent',academic:'Academic',resources:'resources'}[path.slice(9)];page=category?directory(new URLSearchParams(category==='resources'?{category:'resources'}:{type:category})):notFound();}else if(path.startsWith('/countries/')){const country=Object.entries(COUNTRY_CODES).find(([,code])=>code.toLowerCase()===path.slice(11));page=country?directory(new URLSearchParams({based:country[0]})):notFound();}else if(path.startsWith('/topics/')){const topic=[...new Set(sources.flatMap(s=>s.topics))].find(t=>t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')===path.slice(8));page=topic?directory(new URLSearchParams({topic})):notFound();}else if(isMemberPath(path))page=renderMemberPage({path,params,lang,sources});else if(path==='/')page=home();else if(path==='/research')page=researchPage(params,sources);else if(path==='/submit-research')page=submissionPage();else if(path==='/research-review')page=submissionPage(true);else if(path==='/directory')page=directory(params);else if(path.startsWith('/source/'))page=profile(path.split('/')[2]);else if(path==='/saved')page=savedPage();else if(path==='/about')page=aboutPage();else if(LEGAL_DOCS[path])page=legalPage(path,lang);else if(path==='/legal')page=legalIndex(lang);else if(path==='/support')page=supportPage();else if(path==='/ranking')page=rankingPage();else if(path==='/source-guide')page=sourceGuide();else page=notFound();$('#app').innerHTML=header(path)+`<main id="main" tabindex="-1">${page}</main>`+footer();if(LEGAL_DOCS[path]||path==='/legal'||path==='/support')document.title=`${LEGAL_DOCS[path]?.title||(path==='/legal'?'Legal and policies':'Support ID-EBP')} | ID-EBP`;if(path.startsWith('/source/'))document.title=`${sources.find(s=>s.id===path.slice(8))?.name||'Source'} — policing research source | ID-EBP`;bind();for(const [id,left] of scrolls){const track=document.getElementById(id);if(track)track.scrollLeft=left;}if(activeSave?.track)document.getElementById(activeSave.track)?.querySelector(`[data-id="${CSS.escape(activeSave.id)}"]`)?.focus({preventScroll:true});renderedPath=location.pathname+location.search;}
 function setFilters(extra={}){const form=$('#filter-form');const next={...currentFilter,...Object.fromEntries(new FormData(form)),...extra,page:''};const p=new URLSearchParams(Object.entries(next).filter(([,v])=>v));location.href='/directory?'+p;}
 function bind(){
@@ -208,3 +221,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshDir
 window.addEventListener('online',refreshDirectory);
 window.addEventListener('storage',event=>{if(event.key==='pd-saved'||event.key?.startsWith('idebp-saved-pending:'))refreshDirectory();});
 document.addEventListener('input',event=>{if(event.target.closest('form')&&!isMemberPath(route().path))publicFormDirty=true;});
+document.addEventListener('click',event=>{
+  const link=event.target.closest('a[href]');if(!link)return;
+  const url=new URL(link.getAttribute('href'),location.origin);
+  if(url.origin===location.origin&&url.pathname==='/source-workspace'
+    &&!url.searchParams.has('add')&&!url.searchParams.has('edit'))
+    recordPublicFunnel('verify_click');
+});
