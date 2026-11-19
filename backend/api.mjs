@@ -402,6 +402,10 @@ export async function handleApi(request,env={},context={}){
     }
     if(path==='/api/admin/people'&&method==='GET')return reply(await rpc('admin_people',{},actor));
     if(path==='/api/admin/sources'&&method==='GET')return reply(await rpc('admin_sources',{},actor));
+    if(path==='/api/admin/research-verification'&&method==='GET') {
+      await rpc('admin_analytics',{},actor);
+      return reply(await upstream('/rest/v1/rpc/directory_research_verification_report',{},{service:true}));
+    }
     if(path==='/api/admin/analytics'&&method==='GET') {
        // The RPC checks the authenticated, active administrator account first.
        const snapshot=await rpc('admin_analytics',{},actor);

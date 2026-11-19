@@ -1,4 +1,5 @@
 import postgres from "npm:postgres@3.4.4";
+import { coordinatedOpenAlexFetch } from "../_shared/openalex-policy.ts";
 const sql=postgres(Deno.env.get("SUPABASE_DB_URL")!,{prepare:false,max:3});
 const norm=(s:string)=>String(s??"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
 const matches=(a:string,b:string)=>{const x=norm(a),y=norm(b);if(!x||!y)return false;if(x===y)return true;const A=new Set(x.split(" ")),B=new Set(y.split(" "));const overlap=[...A].filter(v=>B.has(v)).length;return overlap>=Math.min(4,A.size,B.size)&&overlap/Math.max(A.size,B.size)>=.78};
@@ -14,9 +15,8 @@ Deno.serve(async(req)=>{
  const dois=claimed.map((x:any)=>cleanDoi(x.doi));
  const params=new URLSearchParams({filter:"doi:"+dois.map((x:string)=>"https://doi.org/"+x).join("|"),per_page:"100",select:"id,doi,title,publication_year,type,authorships,primary_location,open_access"});
  if(secrets.openalex_api_key)params.set("api_key",secrets.openalex_api_key);
- const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),25000);
- let response:Response;
- try{response=await fetch("https://api.openalex.org/works?"+params.toString(),{signal:ctl.signal,headers:{"User-Agent":"ID-EBP Directory (https://id-ebp.org)"}})}finally{clearTimeout(t)}
+ const response=await coordinatedOpenAlexFetch(sql,"https://api.openalex.org/works?"+params,
+   "ID-EBP Directory (https://id-ebp.org)",12000);
  if(!response.ok)throw Error("OpenAlex HTTP "+response.status);
  const body=await response.json();
  const mapped=new Map((body.results??[]).map((x:any)=>[cleanDoi(x.doi??""),x]));

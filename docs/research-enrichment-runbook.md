@@ -1,6 +1,6 @@
 # ID-EBP research enrichment — operating runbook
 
-Last verified: 18 November 2026. Production project: `hvwmystbqlocjixvwgfl`. Repository: `idorunning/ID-EBP`.
+Last verified: 19 November 2026. Production project: `hvwmystbqlocjixvwgfl`. Repository: `idorunning/ID-EBP`.
 
 ## Scope and status definitions
 
@@ -17,8 +17,8 @@ The catalogue contained **17,209** records at the baseline check, of which **7,4
 | `doi-enrichment` | Crossref single-DOI check, low-rate and retrying | `supabase/functions/doi-enrichment/index.ts` |
 | `doi-openalex-bulk` | OpenAlex batch DOI verification; up to 50 per call | `supabase/functions/doi-openalex-bulk/index.ts` |
 | `doi-datacite-fallback` | DataCite fallback for DOI records unresolved by other APIs | `supabase/functions/doi-datacite-fallback/index.ts` |
-| `non-doi-openalex` | Exact-title OpenAlex search, corroborated by author/year/original URL/uniqueness | `supabase/functions/non-doi-openalex/index.ts` |
-| `non-doi-publisher` | Fetch original publisher HTML and extract structured metadata; flags PDF/blocked/incorrect titles | `supabase/functions/non-doi-publisher/index.ts` |
+| `non-doi-openalex` | Runs the hourly publisher and OpenAlex batch. OpenAlex matching requires an exact title plus a matching URL or matching authorship and year. | `supabase/functions/non-doi-openalex/index.ts` |
+| `non-doi-publisher` | Legacy publisher checker. Its minute-by-minute schedule is disabled. | `supabase/functions/non-doi-publisher/index.ts` |
 
 Every worker is protected by the `x-cron-token` value held only in Supabase Vault (`doi_enrichment_cron_token`). The OpenAlex API key is also in Vault. Do not commit secret values or use a public API key for privileged database updates.
 
@@ -27,7 +27,11 @@ Every worker is protected by the `x-cron-token` value held only in Supabase Vaul
 - `public.research_records`: 17,209 baseline catalogue entries.
 - `private.doi_enrichment_queue`: stable record IDs, batches of 500, DOI, status, evidence, raw metadata, updated fields, attempt/backoff state, DataCite state.
 - `private.non_doi_enrichment_queue`: stable record IDs, batches of 500, matching results, original-publisher results, evidence and retrieval status.
-- `private.enrichment_run_log`: records processed and dispositions per run.
+- `private.enrichment_run_log`: legacy workflow counts.
+- `private.enrichment_hourly_batches`: hourly lease and durable totals for attempts, verifications, updates, deferrals, failures and exceptions.
+- `private.enrichment_hourly_results`: individual dispositions, evidence URLs and changed fields.
+- `private.enrichment_provider_state`: OpenAlex cooldown and last provider error.
+- `private.verification_items` and `private.verification_exceptions`: formal screening and review backlog.
 - `private.research_duplicate_review`: DOI and title+URL duplicate groups, **review only**. Deliberate cross-listings are possible.
 - `private.research_record_history`: previous row values retained by existing change tracking.
 - `private.snapshot_20261116_research_records`: prior baseline copy, not necessarily a complete recovery method.
@@ -41,8 +45,9 @@ Check with `select jobid, jobname, schedule, active from cron.job order by jobid
 - `doi-enrichment-every-minute` — every minute
 - `doi-openalex-bulk-every-5-minutes` — every 5 minutes
 - `doi-datacite-fallback` — every 15 minutes
-- `non-doi-openalex-every-minute` — every minute
-- `non-doi-publisher-every-minute` — every minute
+- `id-ebp-research-assurance-hourly` — at minute 50 UTC, screens up to 250 previously unscreened records and records evidence references and exceptions in the existing assurance tables.
+- `id-ebp-research-enrichment-hourly` — at minute 55 UTC, targets 250 records. It runs short invocations of up to 16 records and uses the same batch ID throughout. The lease prevents overlapping runs. The next hourly tick can resume the remaining work after a failed or expired batch.
+- The previous minute-by-minute OpenAlex and publisher triggers are disabled. The worker makes up to 35 single-concurrency OpenAlex title searches per hour, subject to the remaining budget and a 1,000-credit reserve for existing discovery. It can continue publisher checks while OpenAlex is deferred. Each billable OpenAlex caller shares the same database request lock.
 - `doi-queue-add-discovered` — every 30 minutes, adds newly recovered DOIs
 - `doi-enrichment-recover-stalled`, `doi-datacite-recover-stalled`, `non-doi-recover-stalled`, `non-doi-publisher-recover-stalled` — interrupted-job recovery
 
@@ -82,9 +87,9 @@ from public.research_records;
 
 ## Responding to problems
 
-First inspect `cron.job_run_details`, `private.enrichment_run_log`, queue statuses and the most recent Edge Function response. Temporary 429 errors should back off. The recovery jobs requeue claims interrupted for more than ten minutes, but terminal conflicts remain available for inspection.
+First inspect `cron.job_run_details`, `private.enrichment_run_log`, queue statuses and the most recent Edge Function response. HTTP 429 opens the shared cooldown. Subsequent title searches wait until the recorded retry time or next daily reset as applicable. The recovery jobs requeue claims interrupted for more than ten minutes, but terminal conflicts remain available for inspection.
 
-To stop one scheduled job without discarding its queue, use `select cron.unschedule('<exact jobname>');`. Restore only after diagnosing the error. Do not delete queue entries, snapshots or history. To roll back an incorrectly filled value, inspect that record's `private.research_record_history` and original evidence and restore the specific field under change-control.
+To pause a scheduled job without discarding its queue or schedule, use `cron.alter_job(jobid, active := false)` for the exact job. Restore only after diagnosing the error. Do not delete queue entries, snapshots or history. To roll back an incorrectly filled value, inspect that record's `private.research_record_history` and original evidence and restore the specific field under change-control.
 
 ## Definition of finished
 

@@ -1,4 +1,5 @@
 import postgres from "npm:postgres@3.4.4";
+import { coordinatedOpenAlexFetch } from "../_shared/openalex-policy.ts";
 const db=postgres(Deno.env.get("SUPABASE_DB_URL")!,{prepare:false,max:3});
 const KEYWORD=/polic(?:e|ing)|criminolog|criminal|crime|victimolog|justice|law enforcement|public safety|community safety|forensic|correction|probation|evidence.based/i;
 function publicUrl(value:any):string|null{
@@ -31,10 +32,8 @@ Deno.serve(async(request)=>{
  try{
   const params=new URLSearchParams({search:search.term,per_page:"20",select:search.stream==="sources"?"id,display_name,homepage_url,type,country_code,works_count,host_organization_name":search.stream==="institutions"?"id,display_name,homepage_url,country_code,type,works_count,ror":"id,display_name,homepage_url,country_codes,works_count"});
   if(secrets.openalex_api_key)params.set("api_key",secrets.openalex_api_key);
-  const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),18000);
-  let response:Response;
-  try{response=await fetch("https://api.openalex.org/"+search.stream+"?"+params.toString(),{signal:ctl.signal,headers:{"User-Agent":"ID-EBP discovery catalogue (https://id-ebp.org)"}})}
-  finally{clearTimeout(timer)}
+  const response=await coordinatedOpenAlexFetch(db,"https://api.openalex.org/"+search.stream+"?"+params,
+    "ID-EBP discovery catalogue (https://id-ebp.org)",12000);
   if(response.status===429||response.status===402)throw Error("RATE_LIMIT_"+response.status);
   if(!response.ok)throw Error("OpenAlex HTTP "+response.status);
   const body=await response.json();

@@ -158,7 +158,7 @@ Object.assign(COPY.en,{type:'Source type',emailSetupTitle:'Email sign-in is bein
 Object.assign(COPY.fr,{type:'Type de source',emailSetupTitle:'Connexion par courriel en préparation',emailSetupBody:'Les nouvelles connexions et inscriptions ne sont pas encore disponibles. Les membres déjà connectés peuvent continuer à utiliser leur compte.',duplicateContribution:'Vous avez déjà soumis cette contribution.',claimEmail:'Courriel du représentant',claimEvidence:'Justificatifs de gestion',managedAccess:'Accès à la gestion confirmé'});
 Object.assign(COPY.es,{type:'Tipo de fuente',emailSetupTitle:'Se está conectando el acceso por correo',emailSetupBody:'Todavía no están disponibles los nuevos accesos y registros. Los miembros con sesión abierta pueden seguir utilizando sus cuentas.',duplicateContribution:'Ya has enviado esta contribución.',claimEmail:'Correo del representante',claimEvidence:'Pruebas de gestión',managedAccess:'Acceso de gestión confirmado'});
 const LANGUAGE_CODES={English:'en',French:'fr',Spanish:'es',Arabic:'ar',Portuguese:'pt',German:'de',Dutch:'nl',Italian:'it',Polish:'pl',Welsh:'cy',Irish:'ga',Swedish:'sv',Norwegian:'no',Danish:'da',Finnish:'fi',Romanian:'ro',Greek:'el',Hungarian:'hu',Czech:'cs',Ukrainian:'uk',Turkish:'tr',Russian:'ru',Hindi:'hi',Urdu:'ur',Bengali:'bn','Mandarin Chinese':'zh',Japanese:'ja',Korean:'ko',Indonesian:'id',Malay:'ms',Thai:'th',Vietnamese:'vi',Swahili:'sw',Zulu:'zu',Afrikaans:'af','Māori':'mi'};
-const state = {workflows:null,sourceReport:null,analytics:null,trafficRange:28,adminTab:'sources',claimDrafts:new Map(),people:null,team:new Map(),status:null, session:{user:null}, unavailable:false, init:null, claimTarget:'', pendingEmail:'', createAccount:false, displayName:'', reviews:null, recovering:false, resetVerified:false, profiles:new Map(), communities:new Map(), resources:new Map(), resourceReviews:[], publicResources:new Map(), publicCommunity:{}};
+const state = {researchVerification:null,workflows:null,sourceReport:null,analytics:null,trafficRange:28,adminTab:'sources',claimDrafts:new Map(),people:null,team:new Map(),status:null, session:{user:null}, unavailable:false, init:null, claimTarget:'', pendingEmail:'', createAccount:false, displayName:'', reviews:null, recovering:false, resetVerified:false, profiles:new Map(), communities:new Map(), resources:new Map(), resourceReviews:[], publicResources:new Map(), publicCommunity:{}};
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tr = (lang,key,values={}) => (COPY[lang]?.[key] ?? COPY.en[key] ?? key).replace(/\{(\w+)\}/g, (_,name) => String(values[name] ?? ''));
 const i = (name) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${({member:'<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',source:'<path d="M4 3h12l4 4v14H4zM15 3v5h5M8 12h8M8 16h6"/>',shield:'<path d="m12 3 8 4v5c0 5-8 9-8 9s-8-4-8-9V7zM8 12l3 3 5-6"/>',tag:'<path d="M3 3h8l10 10-8 8L3 11z"/><circle cx="7.5" cy="7.5" r="1"/>',star:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9z"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/>',arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',check:'<path d="m5 12 4 4L19 6"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>'})[name] || ''}</svg>`;
@@ -374,13 +374,41 @@ function sourceManagerView(sources){
 function memberDirectoryView(){const members=state.people?.members||[];return `<section class="member-panel"><div class="member-section-head"><h2>Member records</h2><button class="button button-outline button-small" data-member-action="export-members">Download member records</button></div><p>${members.length} member${members.length===1?'':'s'}. Sign-in dates are recorded by the account service; they are separate from anonymous visitor traffic.</p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Email / role</th><th>Joined</th><th>Last sign-in</th><th>Email verified</th><th>Sources / claims / ratings</th></tr></thead><tbody>${members.map(m=>`<tr><td><strong>${esc(m.email)}</strong><br>${esc(m.admin?'Administrator':m.state)}</td><td>${dateLabel(m.createdAt)}</td><td>${dateLabel(m.lastSignIn)}</td><td>${dateLabel(m.emailConfirmedAt)}</td><td>${m.sourceCount} / ${m.claimCount} / ${m.ratingCount}</td></tr>`).join('')}</tbody></table></div></section>${peopleView()}`;}
 function analyticsView(){return renderAdminTraffic(state.analytics,{days:state.trafficRange});}
 
+function researchVerificationView(){
+ const report=state.researchVerification;
+ if(!report)return '<section class="member-panel"><h2>Research verification</h2><p>Verification figures are unavailable. Use Refresh to try again.</p></section>';
+ const count=value=>Number(value??0).toLocaleString('en-GB');
+ const metrics=(rows)=>`<dl>${rows.map(([label,value])=>`<dt>${esc(label)}</dt><dd>${count(value)}</dd>`).join('')}</dl>`;
+ const latest=report.latestBatch,error=report.latestWorkerError;
+ return `<section class="member-panel"><h2>Research verification</h2>
+ <p>${count(report.fullyVerified)} of ${count(report.publishedResearch)} published records have completed formal verification.</p>
+ ${metrics([['Published research records',report.publishedResearch],['Published sources',report.publishedSources],
+ ['Fully verified',report.fullyVerified],['Partially verified',report.partiallyVerified],
+ ['Awaiting verification',report.awaitingVerification],['Records formally screened',report.formallyScreened]])}
+ </section><section class="member-panel"><h2>Metadata checks</h2>
+ ${metrics([['Records with a DOI',report.doiRecords],['Verified through the DOI queue',report.doiVerified],
+ ['Verified through non-DOI OpenAlex matching',report.openAlexVerified],['Verified on a publisher page',report.publisherVerified],
+ ['Records in the hourly enrichment queue',report.enrichmentRemaining],['Potential duplicate cases awaiting review',report.duplicateBacklog]])}
+ <h3>Missing or unresolved fields</h3>
+ ${metrics([['Publication year',report.missingMetadata?.year],['Authors',report.missingMetadata?.authors],
+ ['Summary',report.missingMetadata?.summary],['Tags',report.missingMetadata?.tags],
+ ['Link to a published source',report.missingMetadata?.source],['Web address',report.missingMetadata?.url]])}
+ </section><section class="member-panel"><h2>Hourly processing</h2>
+ <p>Next scheduled batch ${esc(dateLabel(report.nextBatch))}.</p>
+ ${latest?`<h3>Latest completed batch</h3><p>${esc(dateLabel(latest.finished_at))} · ${esc(latest.id)}</p>
+ ${metrics([['Attempted',latest.attempted],['Verified',latest.verified],['Updated',latest.updated],
+ ['Deferred',latest.deferred],['Failed',latest.failed],['Exceptions',latest.exceptions],['Remaining at checkpoint',latest.remaining]])}`:'<p>No batch has completed yet.</p>'}
+ <h3>Latest worker error</h3><p>${error?`${esc(dateLabel(error.reportedAt))} · ${esc(error.message)}`:'None recorded.'}</p>
+ </section>`;
+}
+
 function adminView({lang,sources,path}) {
  if(!state.session.user?.admin)return `<div class="member-panel member-lock">${i('shield')}<h2>${esc(tr(lang,'adminOnly'))}</h2><p>${esc(tr(lang,'adminLogin'))}</p><a class="button" href="/login">Sign in</a></div>`;
  if(state.session.passwordChangeRequired)return passwordChangeView();
  const activeTab=state.adminTab===undefined?'sources':state.adminTab;
  const selectedTab=path==='/admin/traffic'?'traffic':activeTab;
  const reviews=state.reviews,list=reviews?[...(reviews.tags||[]).map(item=>[item,'tag']),...(reviews.claims||[]).map(item=>[item,'claim']),...(reviews.revisions||[]).map(item=>[item,'revision']),...(reviews.submissions||[]).map(item=>[item,'submission'])]:[];
- return `${messageRegion()}<div class="member-section-head"><nav class="admin-tabs" aria-label="Administration sections">${[['sources','Source manager'],['reviews',`Review queue (${list.length})`],['resources',`Resource approvals (${state.resourceReviews.length})`],['members','Members & decisions'],['workflows','Checks & notifications'],['traffic','Traffic & search']].map(([tab,label])=>`<a href="${tab==='traffic'?'/admin/traffic':'/admin?tab='+tab}" ${selectedTab===tab?'aria-current="page"':''}>${esc(label)}</a>`).join('')}</nav><button class="button button-outline button-small" data-member-action="refresh-admin">Refresh</button></div>${selectedTab==='resources'?resourceAdminView():selectedTab==='sources'?sourceManagerView(sources):selectedTab==='members'?memberDirectoryView():selectedTab==='traffic'?analyticsView():selectedTab==='workflows'?workflowsView():`<section class="member-panel"><h2>Review queue</h2>${!reviews?'<p>Loading…</p>':list.length?`<div class="member-review-list">${list.map(([item,kind])=>reviewCard(item,kind,lang,sources)).join('')}</div>`:'<p>There is nothing awaiting review.</p>'}</section>`}`;
+ return `${messageRegion()}<div class="member-section-head"><nav class="admin-tabs" aria-label="Administration sections">${[['sources','Source manager'],['reviews',`Review queue (${list.length})`],['resources',`Resource approvals (${state.resourceReviews.length})`],['members','Members & decisions'],['workflows','Checks & notifications'],['research-verification','Research verification'],['traffic','Traffic & search']].map(([tab,label])=>`<a href="${tab==='traffic'?'/admin/traffic':'/admin?tab='+tab}" ${selectedTab===tab?'aria-current="page"':''}>${esc(label)}</a>`).join('')}</nav><button class="button button-outline button-small" data-member-action="refresh-admin">Refresh</button></div>${selectedTab==='resources'?resourceAdminView():selectedTab==='sources'?sourceManagerView(sources):selectedTab==='members'?memberDirectoryView():selectedTab==='research-verification'?researchVerificationView():selectedTab==='traffic'?analyticsView():selectedTab==='workflows'?workflowsView():`<section class="member-panel"><h2>Review queue</h2>${!reviews?'<p>Loading…</p>':list.length?`<div class="member-review-list">${list.map(([item,kind])=>reviewCard(item,kind,lang,sources)).join('')}</div>`:'<p>There is nothing awaiting review.</p>'}</section>`}`;
 }
 
 function pageContent(context) {
@@ -437,7 +465,7 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
   const host=root.querySelector('[data-member-page]'); if(!host || host.dataset.memberBound) return;
   host.dataset.memberBound='true';
   const context={path:host.dataset.memberPath,params:new URLSearchParams(host.dataset.memberQuery || ''),lang,sources};
-  if(context.path==='/admin'&&['sources','reviews','resources','members','workflows'].includes(context.params.get('tab')))state.adminTab=context.params.get('tab');
+  if(context.path==='/admin'&&['sources','reviews','resources','members','workflows','research-verification'].includes(context.params.get('tab')))state.adminTab=context.params.get('tab');
   if(context.params.get('claim')) state.claimTarget=context.params.get('claim');
   const initialEdits=new Map();
   const fieldKey=field=>{
@@ -460,6 +488,12 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
   const loadReviews=async()=>{
     if(state.session.passwordChangeRequired)return;
     if(state.session.user?.admin && ['/admin','/admin-preview','/admin/traffic'].includes(context.path)) {
+      if(context.params.get('tab')==='research-verification'){
+        const revision=sessionRevision;
+        const report=await api('/admin/research-verification').catch(()=>null);
+        if(revision===sessionRevision)state.researchVerification=report;
+        return;
+      }
       try{const revision=sessionRevision;const reports=await Promise.allSettled([api('/admin/review'),api('/admin/people'),api('/admin/sources'),api('/admin/analytics?days='+state.trafficRange),api('/admin/workflows'),api('/admin/resources')]);if(revision!==sessionRevision)return;for(const [n,key] of ['reviews','people','sourceReport','analytics','workflows','resourceQueue'].entries())if(reports[n].status==='fulfilled')state[key]=reports[n].value;state.resourceReviews=state.resourceQueue?.resources||[];state.reportRefreshPending=reports.some(r=>r.status==='rejected');if(reports.every(r=>r.status==='rejected'))throw reports[0].reason;if(state.sourceReport)state.sourceReport.sources=state.sourceReport.sources.map(record=>{const local=sourceFor(sources,record.slug);return {...record,publicContact:{name:record.contactName||local?.contactName||'',email:record.contactEmail||local?.contactEmail||'',page:local?.contactPage||'',website:record.url,social:local?.social||[]}};});}
       catch(error){if(error.code==='password_change_required'){await refreshSession();return;}throw error;}
     }
