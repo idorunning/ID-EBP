@@ -22,7 +22,7 @@ test('registration route is translated into all three supported interface langua
   const html=page(lang);
   for(const phrase of phrases)assert.ok(html.includes(phrase),lang+' '+phrase);
   assert.ok(html.includes('href="/register?next=add-source"'));
-  assert.doesNotMatch(html,/\\$\\{esc\\(tr\\(lang,'sourceRegistration/);
+  assert.equal(html.includes("${esc(tr(lang,"),false);
  }
 });
 test('existing homepage collections, flags and original research/practice/source icon names remain',()=>{
