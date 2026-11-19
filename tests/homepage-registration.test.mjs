@@ -10,7 +10,7 @@ test('new institute route opens its form first, without duplicating it',()=>{
  assert.equal((html.match(/id="add-new-source"/g)||[]).length,1);
  assert.ok(html.indexOf('id="add-new-source"')<html.indexOf('<h2>Sources you manage</h2>'));
  assert.match(html,/href="\/register\?next=add-source"/);
- assert.doesNotMatch(html,/\$\{esc\(tr\(lang,'sourceRegistrationHelp'\)\)\}/);
+  assert.equal(html.includes("${esc(tr(lang,"),false);
 });
 test('registration route is translated into all three supported interface languages',()=>{
  const translations={
