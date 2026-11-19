@@ -56,11 +56,11 @@ test('claim mail provider outcomes are recorded without codes or recipient ident
  const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);
  const events=[],pending=[];
  const env={...proxyEnv(),AUTH_EMAIL_ENABLED:'true',EMAIL:{send:async()=>({id:'accepted'})}};
- globalThis.fetch=async request=>{
-   const url=new URL(request.url);
+ globalThis.fetch=async (request,options)=>{
+   const url=new URL(typeof request==='string'?request:request.url);
    if(url.pathname.endsWith('/api/funnel/mail-status')){
-     const payload=await request.json();
-     events.push({event:payload.event,headers:request.headers,body:payload});
+     const payload=options?JSON.parse(options.body):await request.json();
+     events.push({event:payload.event,headers:new Headers(options?.headers||request.headers),body:payload});
      return Response.json({recorded:true});
    }
    return Response.json({sent:true,internalDelivery:{email:'fixture@university.test',code:'123456',purpose:'claim'}});
