@@ -20,6 +20,8 @@ function fixture(options={}){
     if(url.pathname==='/auth/v1/verify'||url.pathname==='/auth/v1/token')return data({access_token:jwt('aal1'),refresh_token:'private-refresh-token',expires_in:options.shortExpiry?1:3600,user:options.proofEmail&&url.pathname==='/auth/v1/verify'?{...user,email:body.email}:user});
     if(url.pathname==='/auth/v1/user')return data(options.unconfirmed?{...user,email_confirmed_at:null}:user);
     if(url.pathname==='/auth/v1/logout')return new Response(null,{status:204});
+    if(url.pathname==='/rest/v1/rpc/directory_funnel_record')return data({recorded:true});
+    if(url.pathname==='/rest/v1/rpc/directory_funnel_report')return data({status:'connected',totals:{verify_click:2},newAccounts:1,claimsPending:0,daily:[]});
     if(url.pathname==='/rest/v1/rpc/directory_api'){
       if(body.p_action==='account_verify')return data({verified:options.invalidAccountCode!==true});
       if(body.p_action==='account_email_ready')return data({email:'new@university.test'});
@@ -161,4 +163,19 @@ test('account email changes use scoped hashed proofs for both mailboxes and expo
  result=await f.call('/api/account/email',{currentCode:'123456',newCode:'654321',userId:'other'});assert.equal(result.response.status,200);assert.equal(result.result.email,'new@university.test');const proofs=f.calls.filter(c=>c.body?.p_action==='account_verify');assert.deepEqual(proofs.map(c=>c.body.p_payload.kind),['email_current','email_new']);assert.ok(f.calls.some(c=>c.url==='/auth/v1/admin/users/'+id&&c.body.email_confirm===true));
  result=await f.call('/api/account/deletion-request',{token:'123456'});assert.equal(result.response.status,202);assert.equal(f.calls.at(-1).body.p_action,'account_delete_request');
  const rejected=fixture({invalidAccountCode:true});await rejected.signIn();result=await rejected.call('/api/account/email',{currentCode:'123456',newCode:'654321'});assert.equal(result.response.status,400);assert.ok(!rejected.calls.some(c=>c.url.startsWith('/auth/v1/admin/users/')));
+});
+
+test('the verification funnel accepts whitelisted events and never sends account details as metrics',async()=>{
+ const f=fixture();
+ let response=await f.call('/api/funnel/event',{event:'verify_click'});
+ assert.equal(response.response.status,200);
+ assert.equal(response.result.recorded,true);
+ response=await f.call('/api/funnel/event',{event:'user_email'});
+ assert.equal(response.response.status,400);
+ await f.call('/api/auth/request',{email:user.email,createAccount:true});
+ await f.call('/api/auth/verify',{email:user.email,token:'123456'});
+ const events=f.calls.filter(c=>c.url==='/rest/v1/rpc/directory_funnel_record').map(c=>c.body);
+ assert.deepEqual(events.map(e=>e.p_event),['verify_click','register_code_issued','signin_code_verified']);
+ assert.ok(events.every(e=>Object.keys(e).join(',')==='p_event'));
+ assert.doesNotMatch(JSON.stringify(events),/@|123456|session_id|source_id/);
 });

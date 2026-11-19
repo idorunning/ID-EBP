@@ -107,6 +107,12 @@ export async function handleApi(request,env={},context={}){
     return data;
   }
   const rpc=(action,payload={},actor=null)=>upstream('/rest/v1/rpc/directory_api',{p_action:action,p_payload:payload,p_actor:actor?.id||null,p_session:actor?claims(current.access).session_id||null:null,p_assurance:actor?claims(current.access).aal||'aal1':'aal1'},{service:true});
+  // Aggregate-only operational funnel. Never pass email, account, source or session
+  // identifiers. A reporting outage must never block registration or claims.
+  async function recordFunnel(event) {
+    try {const result=await upstream('/rest/v1/rpc/directory_funnel_record',{p_event:event},{service:true});return result.recorded===true;}
+    catch {return false;}
+  }
   async function rate(scope,identity,limit,seconds){const digest=await crypto.subtle.digest('SHA-256',encoder.encode('ID-EBP rate v1\0'+config.sessionSecret+'\0'+identity));await rpc('rate_limit',{key:scope+':'+b64(new Uint8Array(digest)),limit,seconds});}
   async function emailDeliveryBudget(){
     await rate('email-send-global','directory',config.emailGlobalLimit,3600);
@@ -161,6 +167,25 @@ export async function handleApi(request,env={},context={}){
     if(!config.configured){if(path==='/api/session'&&method==='GET')return reply({user:null});if(path==='/api/community'&&method==='GET')return reply({sources:{}});fail(503,'setup_required','Member accounts are being connected. You can browse every source.');}
     if(!['GET','POST','PUT','PATCH','DELETE'].includes(method))fail(405,'method_not_allowed','This request method is not supported.');
     if(method!=='GET'){sameOrigin(request);if(Number(request.headers.get('Content-Length'))>16384)fail(413,'body_too_large','The submitted details are too long.');}
+    // Only the trusted Cloudflare proxy can report email transport outcomes.
+    // Browser-supplied internal headers are stripped by the Worker.
+    if(path==='/api/funnel/mail-status'&&method==='POST'){
+      if(context.trustedTask!==true)fail(403,'forbidden','This request is restricted.');
+      const body=await jsonBody(request);
+      if(!['auth_mail_accepted','auth_mail_failed','claim_mail_accepted','claim_mail_failed'].includes(body.event))
+        fail(400,'invalid_details','Unsupported event.');
+      const recorded=await recordFunnel(body.event);
+      return reply({recorded},recorded?200:503);
+    }
+    if(path==='/api/funnel/event'&&method==='POST'){
+      const body=await jsonBody(request);
+      if(!['verify_click','register_view','claim_view'].includes(body.event))
+        fail(400,'invalid_details','Unsupported event.');
+      // A network-shared limit reduces inflated click counts without storing visitor identifiers.
+      await rate('aggregate-funnel-ip',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',300,3600);
+      const recorded=await recordFunnel(body.event);
+      return reply({recorded},recorded?200:503);
+    }
     const resourceMatch=path.match(/^\/api\/sources\/([a-z0-9]+(?:-[a-z0-9]+)*)\/resources$/);
     if(resourceMatch&&method==='GET') {
       await authenticate(false);
@@ -190,6 +215,7 @@ export async function handleApi(request,env={},context={}){
         try{if(recovery)await upstream('/auth/v1/recover',{email:address});else await upstream('/auth/v1/otp',{email:address,create_user:body.createAccount===true,data:{display_name:displayName}});}catch(error){if(!(error instanceof ApiError)||error.status!==400)throw error;}
       }
       responseHeaders.append('Set-Cookie',cookie(LOGIN_COOKIE,await seal({email:address,type:otpType,purpose:recovery?'reset':'signin',until:Date.now()+600000},config.sessionSecret),600));
+      if(body.createAccount===true&&!recovery)await recordFunnel('register_code_issued');
       return reply({sent:true,message:recovery?'If this address has an account, a password-reset code is on its way. Check your email.':'If this address can sign in, a verification code is on its way. Check your email.',...(delivery?{internalDelivery:delivery}:{})});
     }
     if(path==='/api/auth/password'&&method==='POST'){
@@ -214,7 +240,9 @@ export async function handleApi(request,env={},context={}){
       await writeSession(data);user=null;
       if(login.purpose==='reset'){current.recoveryUntil=Date.now()+600000;responseHeaders.set('Set-Cookie',cookie(SESSION_COOKIE,await seal(current,config.sessionSecret)));}
       responseHeaders.append('Set-Cookie',cookie(LOGIN_COOKIE,'',0));
-      const after=await sessionAfterWrite(data.user);return reply({...after.session,sessionRefreshPending:after.sessionRefreshPending===true,recovery:login.purpose==='reset'});
+      const after=await sessionAfterWrite(data.user);
+      if(login.purpose!=='reset')await recordFunnel('signin_code_verified');
+      return reply({...after.session,sessionRefreshPending:after.sessionRefreshPending===true,recovery:login.purpose==='reset'});
     }
     const sourceMatch=path.match(/^\/api\/sources\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(community|profile|rating|tags|claim|claim-code|team|invite-editor|accept-editor|revoke-editor)$/);
     if(sourceMatch&&['team','invite-editor','accept-editor','revoke-editor'].includes(sourceMatch[2])){
@@ -236,6 +264,7 @@ export async function handleApi(request,env={},context={}){
         if(!/^\d{6,10}$/.test(code||''))fail(503,'auth_email_unavailable','Email verification is temporarily unavailable.');
         otpType=generated.verification_type||generated.properties?.verification_type||otpType;
         responseHeaders.append('Set-Cookie',cookie(CLAIM_COOKIE,await seal({slug,email:address,actor:member?.id||null,type:otpType,until:Date.now()+600000},config.sessionSecret),600));
+        await recordFunnel('claim_code_issued');
         return reply({sent:true,expiresIn:600,internalDelivery:{email:address,code,purpose:'claim'}});
       }
       const challenge=await open(cookies(request)[CLAIM_COOKIE],config.sessionSecret);
@@ -251,6 +280,7 @@ export async function handleApi(request,env={},context={}){
       // source mailbox. Anonymous claimants join using the mailbox just proved.
       if(!member){await writeSession(verified);user=verified.user;}
       const result=await rpc('claim_source',{slug,evidence,evidenceUrl,contactEmail:address,mailboxVerified:true},user);
+      await recordFunnel('claim_submitted');
       responseHeaders.append('Set-Cookie',cookie(CLAIM_COOKIE,'',0));
       return reply({...result,...await sessionAfterWrite()},201);
     }
@@ -376,12 +406,27 @@ export async function handleApi(request,env={},context={}){
        // The RPC checks the authenticated, active administrator account first.
        const snapshot=await rpc('admin_analytics',{},actor);
        const live=await trafficReports(env,url.searchParams.get('days'),{fetcher});
-       return reply({...snapshot,...live});
+       let funnel={status:'unavailable'};
+       try {
+         const days=[7,28,90].includes(Number(url.searchParams.get('days')))?Number(url.searchParams.get('days')):28;
+         funnel=await upstream('/rest/v1/rpc/directory_funnel_report',{p_days:days},{service:true});
+       } catch {}
+       return reply({...snapshot,...live,funnel});
      }
     if(path==='/api/admin/manage'&&method==='POST')return reply(await rpc('admin_manage',await jsonBody(request),actor));
     if(path==='/api/admin/review-status'&&method==='GET')return reply(await rpc('review_status',{kind:url.searchParams.get('kind'),id:url.searchParams.get('id')},actor));
     if(path==='/api/admin/review'&&method==='GET')return reply(await rpc('admin_review',{},actor));
     if(path==='/api/admin/review'&&method==='POST')return reply(await rpc('moderate',await jsonBody(request),actor));
     fail(404,'not_found','This account action could not be found.');
-  }catch(error){return reply({error:{code:error instanceof ApiError?error.code:'service_unavailable',message:error instanceof ApiError?error.message:'The account service is temporarily unavailable. Please try again.'}},error instanceof ApiError?error.status:503);}
+  }catch(error){
+    // Operational errors are counted by endpoint only. Never log addresses or codes.
+    if(method==='POST'){
+      const event=path==='/api/auth/request'?'auth_request_failed'
+        :path==='/api/auth/verify'?'signin_verify_failed'
+        :/\/claim-code$/.test(path)?'claim_request_failed'
+        :/\/claim$/.test(path)?'claim_submit_failed':null;
+      if(event)await recordFunnel(event);
+    }
+    return reply({error:{code:error instanceof ApiError?error.code:'service_unavailable',message:error instanceof ApiError?error.message:'The account service is temporarily unavailable. Please try again.'}},error instanceof ApiError?error.status:503);
+  }
 }
