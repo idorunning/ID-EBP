@@ -89,6 +89,48 @@ test('directory database permission and integrity checks',async t=>{
     await denied('anon',null,'select * from public.saved_sources');
   });
 
+  await t.test('live enrichment validates administrator sessions and excludes unknown DOI eligibility',async()=>{
+    const memberSession='00000000-0000-4000-8001-000000000001';
+    const adminSession='00000000-0000-4000-8001-000000000003';
+    await db.query("update auth.users set email_confirmed_at=now(),email=id::text||'@example.test' where id in ($1,$2)",[users.member,users.admin]);
+    await db.query("insert into auth.sessions(id,user_id) values($1,$2),($3,$4)",[memberSession,users.member,adminSession,users.admin]);
+    const report='select public.directory_live_enrichment($1,$2,$3) as report';
+    const args=[users.admin,adminSession,'aal1'];
+    await denied('anon',null,report,args);
+    await denied('authenticated',users.member,report,args);
+    await denied('service_role',null,report,[users.member,memberSession,'aal1']);
+    await denied('service_role',null,report,[users.admin,memberSession,'aal1']);
+    await denied('authenticated',users.member,'select * from private.enrichment_doi_events');
+    await db.exec(`
+      insert into public.research_records(id,source,source_slug,title,url,doi) values
+        ('dashboard-doi','Example','example','Evidence title','https://example.test/dated','10.1234/example'),
+        ('dashboard-unknown','Example','example','Catalogue entry','https://example.test/undated',null);
+      insert into private.doi_enrichment_queue(record_id,batch_no,doi) values('dashboard-doi',1,'10.1234/example');
+      update private.doi_enrichment_queue set status='processing' where record_id='dashboard-doi';
+      update private.doi_enrichment_queue set status='verified',processed_at=clock_timestamp(),
+        evidence_url='https://example.test/registry',updated_fields=array['authors'] where record_id='dashboard-doi';
+    `);
+    try {
+      await as('service_role',null,async d=>{
+        const {rows:[row]}=await d.query(report,args);
+        const metric=key=>row.report.metrics.find(value=>value.key===key);
+        assert.equal(metric('doi_validation').eligible,1);
+        assert.equal(metric('doi_validation').complete,1);
+        assert.equal(metric('authors').improved,1);
+        assert.equal(row.report.windows[0].logged_attempts,1);
+        assert.equal(row.report.windows[0].improved,1);
+        assert.equal(row.report.pipeline.state,'unavailable');
+        assert.equal(row.report.totals.assurance_available,false);
+      });
+    } finally {
+      await db.exec(`delete from private.enrichment_doi_events where record_id='dashboard-doi';
+        delete from private.doi_enrichment_queue where record_id='dashboard-doi';
+        delete from public.research_records where id in ('dashboard-doi','dashboard-unknown');
+        delete from auth.sessions where id in ('${memberSession}','${adminSession}');
+        update auth.users set email_confirmed_at=null,email=null where id in ('${users.member}','${users.admin}');`);
+    }
+  });
+
   await t.test('verification analytics remain aggregate and service-only',async()=>{
     await denied('anon',null,'select * from private.registration_funnel_daily');
     await denied('authenticated',users.member,'select * from private.registration_funnel_daily');

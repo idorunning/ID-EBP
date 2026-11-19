@@ -1,6 +1,7 @@
 import {TYPES, CONTENT, TOPICS, METHODS, BASE_COUNTRIES, LANGUAGES, COUNTRY_CODES} from './data.js';
 import {LABELS} from './i18n.js';
 import {renderAdminTraffic} from './admin-traffic.js';
+import {ENRICHMENT_PATH, enrichmentPanel, bindEnrichmentDashboard} from './admin-enrichment.js';
 
 // Account data stays in an HttpOnly, same-origin session. This module never stores
 // credentials or pretends a local form submission has reached the service.
@@ -177,7 +178,7 @@ export function getContributionSummary(sourceId) {
   const info=state.communities.get(sourceId);
   return info ? {ratingAverage:info.rating?.average ?? null,ratingCount:info.rating?.count || 0,tags:(info.tags || []).map(tag=>tag.label),domainConfirmed:Boolean(info.verification?.domainConfirmed),organisationConfirmed:Boolean(info.verification?.organisationConfirmed)} : (state.publicCommunity[sourceId] || {ratingAverage:null,ratingCount:0,tags:[],domainConfirmed:false,organisationConfirmed:false});
 }
-export function isMemberPath(path) { return ['/login','/register','/reset-password','/account','/members','/source-workspace','/source-preview','/admin','/admin-preview','/admin/traffic'].includes(path); }
+export function isMemberPath(path) { return ['/login','/register','/reset-password','/account','/members','/source-workspace','/source-preview','/admin','/admin-preview','/admin/traffic',ENRICHMENT_PATH].includes(path); }
 
 export async function accountApi(path,{method='GET',body,accountId,timeoutMs=50000}={}) {
   const requestedRevision=sessionRevision;
@@ -203,11 +204,25 @@ export async function accountApi(path,{method='GET',body,accountId,timeoutMs=500
 }
 const api=accountApi;
 let initialising=false,sessionRevision=0,sessionRead=0;
+let enrichmentRead;
+function loadEnrichment(accountId, initial) {
+  const revision=sessionRevision;
+  if(enrichmentRead?.revision===revision &&
+    (enrichmentRead.pending || initial && Date.now()-enrichmentRead.loadedAt<5000))return enrichmentRead.promise;
+  const read={revision,pending:true,loadedAt:0};
+  enrichmentRead=read;
+  read.promise=api(ENRICHMENT_PATH,{accountId,timeoutMs:30000}).then(report=>{
+    read.loadedAt=Date.now();
+    return report;
+  }).finally(()=>{read.pending=false;});
+  return read.promise;
+}
 const sessionIdentity=session=>JSON.stringify([session.user?.id||null,session.user?.email||null,Boolean(session.user?.admin),Boolean(session.user?.emailConfirmed),Boolean(session.passwordChangeRequired)]);
 function replaceSession(session){
   if(sessionIdentity(state.session)!==sessionIdentity(session)){
     state.communities.clear();state.profiles.clear();state.team.clear();
     state.reviews=null;state.people=null;state.sourceReport=null;state.analytics=null;state.workflows=null;state.reportRefreshPending=false;state.resetVerified=false;
+    enrichmentRead=undefined;
     sessionRevision++;
   }
   sessionRead++;state.session=session;
@@ -406,16 +421,20 @@ function adminView({lang,sources,path}) {
  if(!state.session.user?.admin)return `<div class="member-panel member-lock">${i('shield')}<h2>${esc(tr(lang,'adminOnly'))}</h2><p>${esc(tr(lang,'adminLogin'))}</p><a class="button" href="/login">Sign in</a></div>`;
  if(state.session.passwordChangeRequired)return passwordChangeView();
  const activeTab=state.adminTab===undefined?'sources':state.adminTab;
- const selectedTab=path==='/admin/traffic'?'traffic':activeTab;
+ const selectedTab=path===ENRICHMENT_PATH?'enrichment':path==='/admin/traffic'?'traffic':activeTab;
+ const databaseTab=['enrichment','research-verification'].includes(selectedTab);
+ const databaseNav=databaseTab?`<nav class="enrichment-database-nav" aria-label="Database">
+   <a href="/admin?tab=research-verification" ${selectedTab==='research-verification'?'aria-current="page"':''}>Research verification</a>
+   <a href="${ENRICHMENT_PATH}" ${selectedTab==='enrichment'?'aria-current="page"':''}>Live Enrichment</a></nav>`:'';
  const reviews=state.reviews,list=reviews?[...(reviews.tags||[]).map(item=>[item,'tag']),...(reviews.claims||[]).map(item=>[item,'claim']),...(reviews.revisions||[]).map(item=>[item,'revision']),...(reviews.submissions||[]).map(item=>[item,'submission'])]:[];
- return `${messageRegion()}<div class="member-section-head"><nav class="admin-tabs" aria-label="Administration sections">${[['sources','Source manager'],['reviews',`Review queue (${list.length})`],['resources',`Resource approvals (${state.resourceReviews.length})`],['members','Members & decisions'],['workflows','Checks & notifications'],['research-verification','Research verification'],['traffic','Traffic & search']].map(([tab,label])=>`<a href="${tab==='traffic'?'/admin/traffic':'/admin?tab='+tab}" ${selectedTab===tab?'aria-current="page"':''}>${esc(label)}</a>`).join('')}</nav><button class="button button-outline button-small" data-member-action="refresh-admin">Refresh</button></div>${selectedTab==='resources'?resourceAdminView():selectedTab==='sources'?sourceManagerView(sources):selectedTab==='members'?memberDirectoryView():selectedTab==='research-verification'?researchVerificationView():selectedTab==='traffic'?analyticsView():selectedTab==='workflows'?workflowsView():`<section class="member-panel"><h2>Review queue</h2>${!reviews?'<p>Loading…</p>':list.length?`<div class="member-review-list">${list.map(([item,kind])=>reviewCard(item,kind,lang,sources)).join('')}</div>`:'<p>There is nothing awaiting review.</p>'}</section>`}`;
+ return `${messageRegion()}<div class="member-section-head"><nav class="admin-tabs" aria-label="Administration sections">${[['sources','Source manager'],['reviews',`Review queue (${list.length})`],['resources',`Resource approvals (${state.resourceReviews.length})`],['members','Members & decisions'],['workflows','Checks & notifications'],['research-verification','Database'],['traffic','Traffic & search']].map(([tab,label])=>`<a href="${tab==='traffic'?'/admin/traffic':'/admin?tab='+tab}" ${selectedTab===tab||databaseTab&&tab==='research-verification'?'aria-current="page"':''}>${esc(label)}</a>`).join('')}</nav>${selectedTab==='enrichment'?'':'<button class="button button-outline button-small" data-member-action="refresh-admin">Refresh</button>'}</div>${databaseNav}${selectedTab==='enrichment'?enrichmentPanel():selectedTab==='resources'?resourceAdminView():selectedTab==='sources'?sourceManagerView(sources):selectedTab==='members'?memberDirectoryView():selectedTab==='research-verification'?researchVerificationView():selectedTab==='traffic'?analyticsView():selectedTab==='workflows'?workflowsView():`<section class="member-panel"><h2>Review queue</h2>${!reviews?'<p>Loading…</p>':list.length?`<div class="member-review-list">${list.map(([item,kind])=>reviewCard(item,kind,lang,sources)).join('')}</div>`:'<p>There is nothing awaiting review.</p>'}</section>`}`;
 }
 
 function pageContent(context) {
   const {path,lang}=context;
   const auth=path==='/login'||path==='/register'||path==='/reset-password';
   const sources=path==='/source-workspace'||path==='/source-preview';
-  const admin=path==='/admin'||path==='/admin-preview'||path==='/admin/traffic';
+  const admin=path==='/admin'||path==='/admin-preview'||path==='/admin/traffic'||path===ENRICHMENT_PATH;
   const title=auth?(path==='/reset-password'?'resetPassword':path==='/register'?'register':'login'):sources?'sourceWorkspace':admin?'admin':'members';
   return `<section class="container member-page-head"><p class="eyebrow">${esc(tr(lang,'community'))}</p><h1>${sources&&context.params?.get('add')==='1'?esc(tr(lang,'newSource')):esc(tr(lang,title))}</h1>${!auth?`<p>${esc(tr(lang,admin?'adminIntro':sources?(context.params?.get('add')==='1'?'newSourceIntro':'sourceIntro'):'intro'))}</p>`:''}</section><div class="container member-layout">${!auth?nav(lang,sources?'/source-workspace':admin?'/admin':'/account'):''}${banner(lang)}${auth?authView(context):sources?sourceWorkspaceView(context):admin?adminView(context):accountView(context)}</div>`;
 }
@@ -474,9 +493,16 @@ export function bindMemberPage({root=globalThis.document,lang='en',sources=[],on
     return JSON.stringify([...identity,form.querySelector('[name=source]')?.value||'',field.name,['checkbox','radio'].includes(field.type)?field.value:'']);
   };
   const rememberField=field=>{const key=fieldKey(field);if(key)initialEdits.set(key,{value:field.value,checked:field.checked,selected:field.multiple?[...field.selectedOptions].map(option=>option.value):null,accountId:state.session.user?.id});};
+  let stopEnrichment;
   const refresh=({preserveEdits=false}={})=>{
     if(!host.isConnected)return;
+    stopEnrichment?.();
     host.innerHTML=pageContent(context);
+    const dashboard=host.querySelector('[data-enrichment-dashboard]');
+    if(dashboard){
+      const accountId=state.session.user.id;
+      stopEnrichment=bindEnrichmentDashboard(dashboard,({initial})=>loadEnrichment(accountId,initial));
+    }
     if(preserveEdits)for(const field of host.querySelectorAll('input[name],textarea[name],select[name]')){
       const edit=initialEdits.get(fieldKey(field));
       if(!edit||(edit.accountId&&edit.accountId!==state.session.user?.id))continue;

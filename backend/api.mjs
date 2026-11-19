@@ -402,6 +402,13 @@ export async function handleApi(request,env={},context={}){
     }
     if(path==='/api/admin/people'&&method==='GET')return reply(await rpc('admin_people',{},actor));
     if(path==='/api/admin/sources'&&method==='GET')return reply(await rpc('admin_sources',{},actor));
+    if(path==='/api/admin/database/enrichment'&&method==='GET') {
+      if(request.headers.get('X-IDEBP-Account')!==actor.id)fail(409,'account_changed','Sign in again before checking enrichment.');
+      const sessionClaims=claims(current.access);
+      return reply(await upstream('/rest/v1/rpc/directory_live_enrichment',{
+        p_actor:actor.id,p_session:sessionClaims.session_id||null,p_assurance:sessionClaims.aal||'aal1'
+      },{service:true}));
+    }
     if(path==='/api/admin/research-verification'&&method==='GET') {
       await rpc('admin_analytics',{},actor);
       return reply(await upstream('/rest/v1/rpc/directory_research_verification_report',{},{service:true}));

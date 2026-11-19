@@ -1,0 +1,57 @@
+.enrichment-dashboard { display: grid; gap: 1rem; }
+.enrichment-dashboard .member-panel { margin: 0 0 1rem; }
+.enrichment-dashboard > .member-panel { margin: 0; }
+.enrichment-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.enrichment-heading h2, .enrichment-heading h3 { margin: 0; }
+.enrichment-refresh-status, .enrichment-updated, .enrichment-note { color: #515e6e; font-size: .86rem; }
+.enrichment-refresh-status { margin-bottom: 0; }
+.enrichment-summary, .enrichment-metrics, .enrichment-windows, .enrichment-ops-rates {
+  display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .75rem;
+}
+.enrichment-summary { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.enrichment-summary article, .enrichment-metric, .enrichment-ops-rates article {
+  border: 1px solid #dce3ea; border-radius: 6px; background: #fff; padding: .875rem 1rem; min-width: 0;
+}
+.enrichment-summary h3 { margin: 0; font-size: .86rem; }
+.enrichment-summary b { display: block; font-size: clamp(1.35rem,2.8vw,2rem); line-height: 1.45; font-variant-numeric: tabular-nums; }
+.enrichment-section h3 { margin: 0 0 .75rem; }
+.enrichment-metric h4, .enrichment-ops-rates h4, .enrichment-latest h4 { font-size: .95rem; margin: 0 0 .45rem; }
+.enrichment-bar-row { display: flex; align-items: center; gap: .6rem; margin: .4rem 0 .65rem; }
+.enrichment-bar-row strong { font-size: .84rem; text-align: end; font-variant-numeric: tabular-nums; }
+.enrichment-bar { flex: 1; width: 100%; min-width: 0; height: .6rem; border: 0; border-radius: .4rem; overflow: hidden; background: #e5ebf1; appearance: none; }
+.enrichment-bar::-webkit-progress-bar { background: #e5ebf1; }
+.enrichment-bar::-webkit-progress-value { background: var(--enrichment-tone,#596776); border-radius: .4rem; }
+.enrichment-bar::-moz-progress-bar { background: var(--enrichment-tone,#596776); border-radius: .4rem; }
+.enrichment-dashboard .is-blue { --enrichment-tone: #29619c; }
+.enrichment-dashboard .is-green { --enrichment-tone: #20704a; }
+.enrichment-dashboard .is-amber { --enrichment-tone: #986000; }
+.enrichment-dashboard .is-red { --enrichment-tone: #a62e2e; }
+.enrichment-dashboard .is-grey { --enrichment-tone: #596776; }
+.enrichment-status { border: 1px solid currentColor; color: var(--enrichment-tone); border-radius: 1rem; padding: .2rem .6rem; font-size: .8rem; font-weight: 700; }
+.enrichment-counts { display: grid; grid-template-columns: repeat(auto-fit,minmax(105px,1fr)); gap: .5rem .8rem; margin: .6rem 0; }
+.enrichment-counts dt { color: #515e6e; font-size: .77rem; }
+.enrichment-counts dd { margin: .12rem 0 0; color: #202d3a; font-size: .88rem; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.enrichment-updated { margin: .65rem 0 .4rem; }
+.enrichment-dashboard details { font-size: .84rem; line-height: 1.5; }
+.enrichment-dashboard summary { color: #254c76; padding: .32rem 0; }
+.enrichment-dashboard details p, .enrichment-ops-rates p { margin: .4rem 0; font-size: .84rem; }
+.enrichment-daily { display: grid; grid-template-columns: minmax(150px,1fr) 3fr; gap: .5rem 1rem; align-items: center; }
+.enrichment-daily h3,.enrichment-daily p { margin: 0; }
+.enrichment-daily .enrichment-counts { margin: 0; }
+.enrichment-dispositions { margin: .65rem 0 1rem; }
+.enrichment-latest { background: #f5f7fa; border-radius: 6px; padding: .85rem 1rem; margin: .75rem 0; }
+.enrichment-error { color: #a62e2e; }
+.enrichment-errors { padding-inline-start: 1.25rem; }
+.enrichment-errors li { margin-block: .6rem; overflow-wrap: anywhere; }
+.enrichment-errors small { display: block; color: #515e6e; }
+.enrichment-table { min-width: 550px; margin: .6rem 0; }
+.enrichment-database-nav { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-bottom: .85rem; }
+.enrichment-database-nav a[aria-current="page"] { font-weight: 750; }
+@media (max-width: 850px) { .enrichment-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 650px) { .enrichment-daily,.enrichment-metrics,.enrichment-windows,.enrichment-ops-rates { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 410px) { .enrichment-summary article,.enrichment-metric { padding: .7rem; } }
+@media (min-width: 761px) and (max-width: 1650px) {
+  body:has([data-member-path="/admin/database/enrichment"]) .header-inner { flex-wrap: wrap; padding-block: 1rem; gap: .5rem 1.1rem; }
+  body:has([data-member-path="/admin/database/enrichment"]) .header-actions { margin-inline-start: auto; }
+  body:has([data-member-path="/admin/database/enrichment"]) .main-nav { order: 3; flex-basis: 100%; justify-content: flex-start; }
+}
