@@ -12,6 +12,7 @@ import {logoMarkup} from './brand.js';
 import {TAP,tapBar,tapOwnership,tapClaimCallout,tapFooterOwner,tapFooterColumn,tapHeaderLockup} from './tap.js';
 import {legalPage,legalIndex,supportPage,LEGAL_DOCS,SUPPORT_URL} from './legal.js';
 import {localiseSource,SOURCE_TRANSLATION_COPY} from './source-translations.js';
+import {needsPublicProfileHydration,countryFlagEmoji} from './initial-profile.js';
 import {accountApi,isMemberPath,renderMemberPage,bindMemberPage,renderContributionWidget,bindContributionWidgets,initialiseMembers,getMemberSession,loadPublicContributions,getContributionSummary,publicDirectoryIsAuthoritative} from './members.js';
 
 const $=s=>document.querySelector(s);
@@ -22,6 +23,9 @@ const readList=key=>{const value=read(key,[]);return Array.isArray(value)?value.
 const savedCollection=new SavedSources({request:accountApi,onChange:()=>{saved=savedCollection.ids;if(renderedPath!==undefined){if(route().path==='/saved')render();else refreshSaveControls();}}});
 let saved=savedCollection.ids;
 let sources=structuredClone(SOURCES),currentFilter={};
+// Keep a server-rendered new source visible until its live directory record loads.
+let initialProfilePath='';
+let waitingForInitialProfile=false;
 const t=k=>COPY[lang][k]??COPY.en[k]??k;
 const label=s=>LABELS[lang]?.[s]||(lang!=='en'&&COUNTRY_CODES[s]?new Intl.DisplayNames([lang],{type:'region'}).of(COUNTRY_CODES[s]):s);
 const tag=s=>`<span class="tag">${esc(label(s))}</span>`;
@@ -41,7 +45,7 @@ function sourceBrand(s,extra=''){
   return `<div class="source-brand ${extra}" data-brand="${esc(s.id)}">${logo?`<img src="${esc(logo)}" alt="${esc(s.owner||s.name)}" loading="lazy" decoding="async"><span class="source-brand-name" hidden>${esc(name)}</span>`:`<span class="source-brand-name">${esc(name)}</span>`}</div>`;
 }
 function sourceRow(original,compact=false){const s=localiseSource(original,lang);return `<article class="source-row ${compact?'compact':''}" data-source="${esc(s.id)}">${sourceBrand(s)}<div class="source-body">${portraitMarkup(s,lang,'card')}<div class="source-meta"><span>${esc(label(s.types[0]))}</span><span>${flag(s.country)}${esc(label(s.country))}</span></div><h3><a href="/source/${s.id}">${esc(s.name)}</a></h3><p lang="${esc(s.descriptionLanguage||'en')}">${esc(s.about)}</p>${summaryLabel(s,lang)}<div class="tags">${s.content.slice(0,compact?2:3).map(tag).join('')}${s.archive?`<span class="archive-tag">${t('archive')}</span>`:''}</div>${s.signals?.domainConfirmed||s.signals?.organisationConfirmed?`<p class="verified-source">${icon('check')}${t('verifiedOwner')}</p>`:''}${s.communityTags?.length?`<div class="community-source-tags">${s.communityTags.slice(0,4).map(v=>`<a href="/directory?query=${encodeURIComponent(v)}">${esc(v)}</a>`).join('')}</div>`:''}${lang!=='en'?`<p class="source-translation">${esc(s.translation.note)}</p>`:''}${s.matchFields?.length?`<p class="match-reason">${t('matchedOn')}: ${[...new Set(s.matchFields.map(k=>t('match_'+k)))].slice(0,3).map(esc).join(', ')}</p>`:''}</div><div class="source-actions"><span class="access-tag">${esc(label(s.access))} ${t('accessSuffix')}</span><a class="text-link" href="/source/${s.id}">${t('profile')}${icon('arrow')}</a><button class="icon-button save-action ${saved.has(s.id)?'active':''}" data-id="${s.id}" aria-pressed="${saved.has(s.id)}" aria-label="${esc(t(saved.has(s.id)?'savedAction':'save'))}: ${esc(s.name)}">${icon('save')}</button></div></article>`;}
-function flag(country){const code=COUNTRY_CODES[country];return code?`<span class="country-flag" aria-hidden="true"><img src="/assets/flags/${code.toLowerCase()}.svg" alt="" width="48" height="36" loading="lazy" decoding="async"></span>`:'';}
+function flag(country){const code=COUNTRY_CODES[country];return code?`<span class="country-flag" aria-hidden="true">${countryFlagEmoji(code)}</span>`:'';}
 const homeCategories=[
  {type:'Academic',image:'library',title:'academicCategory',text:'academicText',icon:'academic',ids:['global-policing-database','huji-criminology']},
  {type:'University',image:'campus',title:'universities',text:'universityText',icon:'university',ids:['portsmouth-policing','porto-cjs']},
@@ -102,7 +106,7 @@ function refreshSourceSignals(){
 }
 let disposeResearch=()=>{};let disposeCarousels=()=>{};let renderedPath='';let publicFormDirty=false;
 function renderBackgroundUpdate(){if(!isMemberPath(route().path)&&!publicFormDirty)render();}
-function render(){const sameRoute=renderedPath===location.pathname+location.search;const scrolls=sameRoute?[...document.querySelectorAll('.source-track')].map(e=>[e.id,e.scrollLeft]):[];const active=document.activeElement;const activeSave=sameRoute&&active?.classList.contains('save-action')?{id:active.dataset.id,track:active.closest('.source-track')?.id}:null;disposeResearch();disposeCarousels();refreshSourceSignals();const {path,params}=route();document.documentElement.lang=lang==='en'?'en-GB':lang;let page;
+function render(){if(waitingForInitialProfile&&route().path===initialProfilePath)return;const sameRoute=renderedPath===location.pathname+location.search;const scrolls=sameRoute?[...document.querySelectorAll('.source-track')].map(e=>[e.id,e.scrollLeft]):[];const active=document.activeElement;const activeSave=sameRoute&&active?.classList.contains('save-action')?{id:active.dataset.id,track:active.closest('.source-track')?.id}:null;disposeResearch();disposeCarousels();refreshSourceSignals();const {path,params}=route();document.documentElement.lang=lang==='en'?'en-GB':lang;let page;
 if(path.startsWith('/sources/')){const category={societies:'EBP society',universities:'University',researchers:'Researcher',blogs:'Blog',independent:'Independent',academic:'Academic',resources:'resources'}[path.slice(9)];page=category?directory(new URLSearchParams(category==='resources'?{category:'resources'}:{type:category})):notFound();}else if(path.startsWith('/countries/')){const country=Object.entries(COUNTRY_CODES).find(([,code])=>code.toLowerCase()===path.slice(11));page=country?directory(new URLSearchParams({based:country[0]})):notFound();}else if(path.startsWith('/topics/')){const topic=[...new Set(sources.flatMap(s=>s.topics))].find(t=>t.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')===path.slice(8));page=topic?directory(new URLSearchParams({topic})):notFound();}else if(isMemberPath(path))page=renderMemberPage({path,params,lang,sources});else if(path==='/')page=home();else if(path==='/research')page=researchPage(params,sources);else if(path==='/submit-research')page=submissionPage();else if(path==='/research-review')page=submissionPage(true);else if(path==='/directory')page=directory(params);else if(path.startsWith('/source/'))page=profile(path.split('/')[2]);else if(path==='/saved')page=savedPage();else if(path==='/about')page=aboutPage();else if(LEGAL_DOCS[path])page=legalPage(path,lang);else if(path==='/legal')page=legalIndex(lang);else if(path==='/support')page=supportPage();else if(path==='/ranking')page=rankingPage();else if(path==='/source-guide')page=sourceGuide();else page=notFound();$('#app').innerHTML=header(path)+`<main id="main" tabindex="-1">${page}</main>`+footer();if(LEGAL_DOCS[path]||path==='/legal'||path==='/support')document.title=`${LEGAL_DOCS[path]?.title||(path==='/legal'?'Legal and policies':'Support ID-EBP')} | ID-EBP`;if(path.startsWith('/source/'))document.title=`${sources.find(s=>s.id===path.slice(8))?.name||'Source'} — policing research source | ID-EBP`;bind();for(const [id,left] of scrolls){const track=document.getElementById(id);if(track)track.scrollLeft=left;}if(activeSave?.track)document.getElementById(activeSave.track)?.querySelector(`[data-id="${CSS.escape(activeSave.id)}"]`)?.focus({preventScroll:true});renderedPath=location.pathname+location.search;}
 function setFilters(extra={}){const form=$('#filter-form');const next={...currentFilter,...Object.fromEntries(new FormData(form)),...extra,page:''};const p=new URLSearchParams(Object.entries(next).filter(([,v])=>v));location.href='/directory?'+p;}
 function bind(){
@@ -125,6 +129,8 @@ bindContributionWidgets({root:document,lang,sources,onChange:memberChanged});
 function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 document.querySelector('.skip-link').addEventListener('click',e=>{e.preventDefault();$('#main').focus();$('#main').scrollIntoView();});
 if(location.hash.startsWith('#/'))history.replaceState(null,'',location.hash.slice(1));
+initialProfilePath=route().path;
+waitingForInitialProfile=needsPublicProfileHydration(initialProfilePath,sources);
 const scrollToAnchor=()=>{if(location.hash&&!location.hash.startsWith('#/'))document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView();};window.addEventListener('hashchange',()=>{if(location.hash&&!location.hash.startsWith('#/')){scrollToAnchor();return;}if(location.hash.startsWith('#/'))history.replaceState(null,'',location.hash.slice(1));render();window.scrollTo({top:0,behavior:'instant'});$('#main')?.focus({preventScroll:true});});render();scrollToAnchor();
 
 // Load public directory updates and community signals, without delaying first paint.
@@ -152,6 +158,8 @@ function applyPublicDirectory(publicData){
   if(profile.country)source.country=countryByCode[profile.country]||profile.country;
   if(profile.languages)source.languages=profile.languages.map(code=>({zh:'Mandarin Chinese',no:'Norwegian',mi:'Māori'}[code]||languageNames.of(code)));
  }
+ // Release the first-paint guard only after a successful public directory read.
+ waitingForInitialProfile=false;
 
 }
 async function memberChanged(){await savedCollection.setUser(getMemberSession().user);applyPublicDirectory(await loadPublicContributions());if(!route().path.startsWith('/source/'))renderBackgroundUpdate();}
