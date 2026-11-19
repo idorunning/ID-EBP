@@ -1,3 +1,4 @@
+import {catalogueTotal} from './live-stats.js';
 import {topicSuggestions,planSearch,normaliseSearch} from './search-topics.js';
 
 const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -231,8 +232,8 @@ export async function refreshResearchTotal(){
   const response=await fetch('/api/research/stats',{cache:'no-store'});
   if(!response.ok)return null;
   const data=await response.json();
-  const total=Number(data?.total);
-  if(!Number.isSafeInteger(total)||total<0)return null;
+  const total=catalogueTotal(data);
+  if(total===null)return null;
   for(const element of document.querySelectorAll('[data-research-total]')){
    element.dataset.count=String(total);
    const label=element.parentElement?.querySelector('.sr-only');
