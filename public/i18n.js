@@ -1254,3 +1254,36 @@ Object.assign(COPY.es,{directoryOnly:'Las fichas ayudan a descubrir fuentes. No 
 Object.assign(COPY.en,{supportLine:'ID-EBP is run in spare time and paid for personally by its editor. Voluntary contributions help keep it free and advert-free.'});
 Object.assign(COPY.fr,{supportLine:'ID-EBP est géré bénévolement et financé personnellement par son responsable. Les contributions volontaires l’aident à rester gratuit et sans publicité.'});
 Object.assign(COPY.es,{supportLine:'ID-EBP se gestiona en tiempo libre y lo financia personalmente su editor. Las contribuciones voluntarias ayudan a mantenerlo gratuito y sin publicidad.'});
+
+
+// Concise, purpose-specific calls to action for source representatives.
+Object.assign(COPY.en,{
+  sourceVerifyCta:'Verify your source', sourceOwnerEyebrow:'For institutes, organisations and research sources',
+  sourceOwnerTitle:'Is your source already listed?',
+  sourceOwnerText:'Register free to verify your details, update your listing and help people find your research.',
+  sourceVerifyListing:'Verify an existing listing',sourceAddOrganisation:'Add an institute or organisation',
+  coverageLive:'Live',coverageDelayed:'Last updated',coverageChecking:'Checking…',
+  coverageLiveHint:'Counts fetched from the published directory and research catalogue. Refreshed automatically.',
+  coverageDelayedHint:'The last successful database refresh was over two minutes ago.',
+  coverageCheckingHint:'Waiting for both database counts to load.'
+});
+Object.assign(COPY.fr,{
+  sourceVerifyCta:'Vérifier votre source',sourceOwnerEyebrow:'Pour les instituts, organismes et sources de recherche',
+  sourceOwnerTitle:'Votre source figure-t-elle déjà dans l’annuaire ?',
+  sourceOwnerText:'Inscrivez-vous gratuitement pour vérifier les informations, mettre à jour la fiche et faciliter l’accès à vos recherches.',
+  sourceVerifyListing:'Vérifier une fiche existante',sourceAddOrganisation:'Ajouter un institut ou organisme',
+  coverageLive:'À jour',coverageDelayed:'Dernière mise à jour',coverageChecking:'Vérification…',
+  coverageLiveHint:'Statistiques actualisées depuis l’annuaire et le catalogue de recherche.',
+  coverageDelayedHint:'La dernière mise à jour remonte à plus de deux minutes.',
+  coverageCheckingHint:'En attente des statistiques de la base de données.'
+});
+Object.assign(COPY.es,{
+  sourceVerifyCta:'Verificar su fuente',sourceOwnerEyebrow:'Para institutos, organizaciones y fuentes de investigación',
+  sourceOwnerTitle:'¿Su fuente ya figura en el directorio?',
+  sourceOwnerText:'Regístrese gratis para verificar los datos, actualizar su ficha y facilitar el acceso a su investigación.',
+  sourceVerifyListing:'Verificar una ficha existente',sourceAddOrganisation:'Añadir un instituto u organización',
+  coverageLive:'Actualizado',coverageDelayed:'Última actualización',coverageChecking:'Comprobando…',
+  coverageLiveHint:'Cifras consultadas en el directorio y el catálogo de investigación y actualizadas automáticamente.',
+  coverageDelayedHint:'La última actualización se realizó hace más de dos minutos.',
+  coverageCheckingHint:'Esperando las estadísticas de la base de datos.'
+});
