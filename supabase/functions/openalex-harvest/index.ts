@@ -5,6 +5,7 @@
 // add vault secret 'openalex_api_key' for the full free allowance.
 // Scheduled by pg_cron job 'openalex-harvest-nightly' (every 10 minutes, 00:00-00:59 UTC).
 import postgres from "npm:postgres@3.4.4";
+import { coordinatedOpenAlexFetch } from "../_shared/openalex-policy.ts";
 
 const sql = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 2 });
 
@@ -91,7 +92,8 @@ Deno.serve(async (req) => {
     };
     if (OA_KEY) params.api_key = OA_KEY;
     const qs = new URLSearchParams(params);
-    const res = await timed(`https://api.openalex.org/works?${qs}`, { headers: { "User-Agent": "ID-EBP directory (https://id-ebp.org)" } }, 20000);
+    const res = await coordinatedOpenAlexFetch(sql, `https://api.openalex.org/works?${qs}`,
+      "ID-EBP directory (https://id-ebp.org)", 15000);
     if (res.status === 429 || res.status === 409) {
       const note = `OpenAlex allowance used up (${res.status})${OA_KEY ? "" : "; no api key set"}; will retry next run`;
       await sql`update staging.swarm_runs set finished_at = now(), status = 'skipped', notes = ${note} where id = ${runId}`;

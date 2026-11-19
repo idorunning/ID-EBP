@@ -153,7 +153,7 @@ export const COPY = {
     "privacyCloud": "Cloudflare serves the preview and processes connection information needed to deliver and protect it. No advertising or optional analytics have been added.",
     "privacyFuture": "Before registration opens, a final notice will identify the account and email providers, purposes, lawful bases, retention periods, transfer safeguards and your rights.",
     "contact": "Contact",
-    "privacyContact": "For privacy questions, contact Nathan Tracey at contact@id-ebp.org. You can also raise a concern with the UK Information Commissioner’s Office.",
+    "privacyContact": "For privacy questions, contact Nathan Tracey at hello@thinkingaboutpolicing.org. You can also raise a concern with the UK Information Commissioner’s Office.",
     "clearData": "Clear my preview data",
     "cleared": "Preview data cleared.",
     "newsletter": "ID-EBP updates",
@@ -481,7 +481,7 @@ export const COPY = {
     "privacyCloud": "Cloudflare héberge et protège cet aperçu et traite les informations de connexion nécessaires. Aucune publicité ni analyse facultative n’a été ajoutée.",
     "privacyFuture": "Avant l’ouverture des inscriptions, la notice finale précisera les prestataires, finalités, bases légales, durées de conservation, transferts et droits.",
     "contact": "Contact",
-    "privacyContact": "Questions : Nathan Tracey, contact@id-ebp.org. Vous pouvez aussi contacter l’autorité britannique ICO.",
+    "privacyContact": "Questions : Nathan Tracey, hello@thinkingaboutpolicing.org. Vous pouvez aussi contacter l’autorité britannique ICO.",
     "clearData": "Effacer mes données de démonstration",
     "cleared": "Données effacées.",
     "newsletter": "Actualités d’ID-EBP",
@@ -809,7 +809,7 @@ export const COPY = {
     "privacyCloud": "Cloudflare sirve y protege la vista previa y procesa la información de conexión necesaria. No se han añadido publicidad ni análisis opcionales.",
     "privacyFuture": "Antes de abrir registros, el aviso final identificará proveedores, fines, bases jurídicas, conservación, transferencias y derechos.",
     "contact": "Contacto",
-    "privacyContact": "Consultas: Nathan Tracey, contact@id-ebp.org. También puede contactar con la autoridad británica ICO.",
+    "privacyContact": "Consultas: Nathan Tracey, hello@thinkingaboutpolicing.org. También puede contactar con la autoridad británica ICO.",
     "clearData": "Borrar mis datos de prueba",
     "cleared": "Datos borrados.",
     "newsletter": "Novedades de ID-EBP",
@@ -1211,19 +1211,19 @@ Object.assign(COPY.es,{"viewAllSources": "Ver todas", "previousSources": "Fuente
 Object.assign(COPY.en,{
  privacyLocal:'Saved sources and your display language are stored in your browser. Clearing this device data does not delete your member account or your submitted contributions.',
  privacyCloud:'Cloudflare hosts and protects the website and delivers sign-in verification emails. Supabase provides the account service and stores member and source-management records. No advertising or optional analytics have been added.',
- privacyFuture:'Registration stores your email address, display name and verification status in Supabase. Your sign-in email stays private. Ratings, approved tags and approved source details are public; ownership evidence, source-team invitations and administrator decisions are restricted to the relevant account holders and administrators. Source owners can see the verified email addresses of their source editors. Audit records support investigation of disputed access and changes. To request access, correction or account deletion, email contact@id-ebp.org.',
+ privacyFuture:'Registration stores your email address, display name and verification status in Supabase. Your sign-in email stays private. Ratings, approved tags and approved source details are public; ownership evidence, source-team invitations and administrator decisions are restricted to the relevant account holders and administrators. Source owners can see the verified email addresses of their source editors. Audit records support investigation of disputed access and changes. To request access, correction or account deletion, email hello@thinkingaboutpolicing.org.',
  clearData:'Clear this device’s saved sources and preferences'
 });
 Object.assign(COPY.fr,{
  privacyLocal:'Les sources enregistrées et la langue sont conservées dans votre navigateur. Effacer ces données ne supprime pas votre compte ni vos contributions.',
  privacyCloud:'Cloudflare héberge et protège le site et envoie les codes de connexion. Supabase gère les comptes et les dossiers de gestion des sources. Aucune publicité ni analyse facultative n’a été ajoutée.',
- privacyFuture:'L’inscription enregistre votre adresse électronique, votre nom et la confirmation de votre adresse dans Supabase. Les notes, mots-clés et fiches approuvés sont publics. Les justificatifs, invitations et décisions sont réservés aux comptes concernés et à l’administration. Les responsables voient les adresses vérifiées de leurs éditeurs. Pour accéder à vos données, les corriger ou supprimer votre compte, écrivez à contact@id-ebp.org.',
+ privacyFuture:'L’inscription enregistre votre adresse électronique, votre nom et la confirmation de votre adresse dans Supabase. Les notes, mots-clés et fiches approuvés sont publics. Les justificatifs, invitations et décisions sont réservés aux comptes concernés et à l’administration. Les responsables voient les adresses vérifiées de leurs éditeurs. Pour accéder à vos données, les corriger ou supprimer votre compte, écrivez à hello@thinkingaboutpolicing.org.',
  clearData:'Effacer les sources et préférences de cet appareil'
 });
 Object.assign(COPY.es,{
  privacyLocal:'Las fuentes guardadas y el idioma se almacenan en su navegador. Borrar estos datos no elimina su cuenta ni sus contribuciones.',
  privacyCloud:'Cloudflare aloja y protege el sitio y envía los códigos de acceso. Supabase gestiona las cuentas y los registros de gestión de fuentes. No se han añadido publicidad ni análisis opcionales.',
- privacyFuture:'El registro guarda su correo, nombre y estado de verificación en Supabase. Las valoraciones, etiquetas y fichas aprobadas son públicas. Las pruebas de representación, invitaciones y decisiones se reservan a las cuentas pertinentes y a la administración. Los titulares ven los correos verificados de sus editores. Para acceder a sus datos, corregirlos o eliminar su cuenta, escriba a contact@id-ebp.org.',
+ privacyFuture:'El registro guarda su correo, nombre y estado de verificación en Supabase. Las valoraciones, etiquetas y fichas aprobadas son públicas. Las pruebas de representación, invitaciones y decisiones se reservan a las cuentas pertinentes y a la administración. Los titulares ven los correos verificados de sus editores. Para acceder a sus datos, corregirlos o eliminar su cuenta, escriba a hello@thinkingaboutpolicing.org.',
  clearData:'Borrar las fuentes y preferencias de este dispositivo'
 });
 
@@ -1243,3 +1243,47 @@ Object.assign(COPY.fr,{savedMemoryOnly:'Ce changement reste uniquement dans cett
 Object.assign(COPY.es,{savedMemoryOnly:'El cambio solo permanece en esta página abierta: fallaron la conexión y el almacenamiento. Mantenga la página abierta y vuelva a sincronizar.'});
 COPY.fr.privacyLocal='Sans connexion, les sources sont conservées dans ce navigateur. À la connexion, elles sont ajoutées à votre collection privée et synchronisées entre appareils. Les changements en attente sont stockés pour le compte qui les a créés. La déconnexion efface la collection affichée. Effacer les données locales ne supprime pas les sources déjà synchronisées. Les brouillons de demande restent dans cet onglet ; les codes de vérification ne sont pas stockés.';
 COPY.es.privacyLocal='Sin iniciar sesión, las fuentes se guardan en este navegador. Al iniciar sesión se añaden a su colección privada y se sincronizan entre dispositivos. Los cambios pendientes se guardan para la cuenta que los creó. Cerrar sesión borra la colección mostrada. Borrar los datos locales no elimina fuentes ya sincronizadas. Los borradores permanecen en esta pestaña; los códigos de verificación no se guardan.';
+
+// Ownership, legal and support pages (16 November 2026).
+Object.assign(COPY.en,{"ownershipTitle": "Ownership", "ownershipText": "ID-EBP is owned and operated by Thinking About Policing, an independent project edited by Nathan Tracey. It is free to use, carries no advertising and is not affiliated with any police force or government body.", "ownershipLink": "Who owns and runs ID-EBP", "legalLink": "Legal and policies", "supportLink": "Support ID-EBP", "termsLink": "Terms of use", "cookiesLink": "Cookies", "listingLink": "Listing and contact policy", "editorRole": "editor", "ownedBy": "ID-EBP is owned and operated by Thinking About Policing.", "supportLine": "ID-EBP is free to use and carries no advertising. Voluntary contributions help cover hosting and research-checking costs.", "independenceLine": "Not affiliated with any police force or government body.", "privacy": "Privacy notice", "aboutBody": "The International Directory of Evidence-Based Policing is a Thinking About Policing project, edited by Nathan Tracey. It connects readers with the organisations, researchers and practitioners who publish original material."});
+Object.assign(COPY.fr,{"ownershipTitle": "Propriété", "ownershipText": "ID-EBP appartient à Thinking About Policing, un projet indépendant dirigé par Nathan Tracey, qui l’exploite. Il est gratuit, sans publicité et n’est affilié à aucun service de police ni organisme public.", "ownershipLink": "Qui possède et gère ID-EBP", "legalLink": "Mentions et politiques", "supportLink": "Soutenir ID-EBP", "termsLink": "Conditions d’utilisation", "cookiesLink": "Cookies", "listingLink": "Politique de référencement et de contact", "editorRole": "responsable éditorial", "ownedBy": "ID-EBP appartient à Thinking About Policing, qui l’exploite.", "supportLine": "ID-EBP est gratuit et sans publicité. Les contributions volontaires aident à couvrir l’hébergement et la vérification des recherches.", "independenceLine": "Sans affiliation avec un service de police ou un organisme public.", "privacy": "Confidentialité", "aboutBody": "International Directory of Evidence-Based Policing est un projet de Thinking About Policing, dirigé par Nathan Tracey. Il renvoie aux organismes, chercheurs et professionnels qui publient les documents originaux."});
+Object.assign(COPY.es,{"ownershipTitle": "Titularidad", "ownershipText": "ID-EBP pertenece a Thinking About Policing, un proyecto independiente dirigido por Nathan Tracey, que lo gestiona. Es gratuito, no tiene publicidad y no está afiliado a ningún cuerpo policial ni organismo público.", "ownershipLink": "Quién es el titular y quién gestiona ID-EBP", "legalLink": "Avisos legales y políticas", "supportLink": "Apoyar ID-EBP", "termsLink": "Condiciones de uso", "cookiesLink": "Cookies", "listingLink": "Política de inclusión y contacto", "editorRole": "editor", "ownedBy": "ID-EBP pertenece a Thinking About Policing, que lo gestiona.", "supportLine": "ID-EBP es gratuito y no tiene publicidad. Las contribuciones voluntarias ayudan a cubrir el alojamiento y la verificación de investigaciones.", "independenceLine": "Sin afiliación con ningún cuerpo policial ni organismo público.", "privacy": "Privacidad", "aboutBody": "International Directory of Evidence-Based Policing es un proyecto de Thinking About Policing, dirigido por Nathan Tracey. Conecta a los lectores con las organizaciones, investigadores y profesionales que publican el material original."});
+Object.assign(COPY.en,{directoryOnly:'Listings support the discovery of sources. They do not certify research quality or endorse interventions.'});
+Object.assign(COPY.fr,{directoryOnly:'Les fiches facilitent la recherche de sources. Elles ne certifient pas la qualité scientifique et ne recommandent pas d’intervention.'});
+Object.assign(COPY.es,{directoryOnly:'Las fichas ayudan a descubrir fuentes. No certifican la calidad científica ni recomiendan intervenciones.'});
+Object.assign(COPY.en,{supportLine:'ID-EBP is run in spare time and paid for personally by its editor. Voluntary contributions help keep it free and advert-free.'});
+Object.assign(COPY.fr,{supportLine:'ID-EBP est géré bénévolement et financé personnellement par son responsable. Les contributions volontaires l’aident à rester gratuit et sans publicité.'});
+Object.assign(COPY.es,{supportLine:'ID-EBP se gestiona en tiempo libre y lo financia personalmente su editor. Las contribuciones voluntarias ayudan a mantenerlo gratuito y sin publicidad.'});
+
+
+// Concise, purpose-specific calls to action for source representatives.
+Object.assign(COPY.en,{
+  sourceVerifyCta:'Verify your source', sourceOwnerEyebrow:'For institutes, organisations and research sources',
+  sourceOwnerTitle:'Is your source already listed?',
+  sourceOwnerText:'Register free to verify your details, update your listing and help people find your research.',
+  sourceVerifyListing:'Verify an existing listing',sourceAddOrganisation:'Add an institute or organisation',
+  coverageLive:'Live',coverageDelayed:'Last updated',coverageChecking:'Checking…',
+  coverageLiveHint:'Counts fetched from the published directory and research catalogue. Refreshed automatically.',
+  coverageDelayedHint:'The last successful database refresh was over two minutes ago.',
+  coverageCheckingHint:'Waiting for both database counts to load.'
+});
+Object.assign(COPY.fr,{
+  sourceVerifyCta:'Vérifier votre source',sourceOwnerEyebrow:'Pour les instituts, organismes et sources de recherche',
+  sourceOwnerTitle:'Votre source figure-t-elle déjà dans l’annuaire ?',
+  sourceOwnerText:'Inscrivez-vous gratuitement pour vérifier les informations, mettre à jour la fiche et faciliter l’accès à vos recherches.',
+  sourceVerifyListing:'Vérifier une fiche existante',sourceAddOrganisation:'Ajouter un institut ou organisme',
+  coverageLive:'À jour',coverageDelayed:'Dernière mise à jour',coverageChecking:'Vérification…',
+  coverageLiveHint:'Statistiques actualisées depuis l’annuaire et le catalogue de recherche.',
+  coverageDelayedHint:'La dernière mise à jour remonte à plus de deux minutes.',
+  coverageCheckingHint:'En attente des statistiques de la base de données.'
+});
+Object.assign(COPY.es,{
+  sourceVerifyCta:'Verificar su fuente',sourceOwnerEyebrow:'Para institutos, organizaciones y fuentes de investigación',
+  sourceOwnerTitle:'¿Su fuente ya figura en el directorio?',
+  sourceOwnerText:'Regístrese gratis para verificar los datos, actualizar su ficha y facilitar el acceso a su investigación.',
+  sourceVerifyListing:'Verificar una ficha existente',sourceAddOrganisation:'Añadir un instituto u organización',
+  coverageLive:'Actualizado',coverageDelayed:'Última actualización',coverageChecking:'Comprobando…',
+  coverageLiveHint:'Cifras consultadas en el directorio y el catálogo de investigación y actualizadas automáticamente.',
+  coverageDelayedHint:'La última actualización se realizó hace más de dos minutos.',
+  coverageCheckingHint:'Esperando las estadísticas de la base de datos.'
+});

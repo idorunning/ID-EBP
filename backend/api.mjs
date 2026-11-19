@@ -1,3 +1,4 @@
+import {trafficReports} from './traffic.mjs';
 // Same-origin API. No key, access token or refresh token is returned to browser JS.
 // This module runs unchanged in Cloudflare Workers or a Supabase Edge Function.
 const SESSION_COOKIE='__Host-idebp_session', LOGIN_COOKIE='__Host-idebp_login', CLAIM_COOKIE='__Host-idebp_claim';
@@ -42,7 +43,7 @@ function settings(env){
     passwordIpLimit:boundedSetting(env.AUTH_PASSWORD_IP_LIMIT,120,12,240),emailIpLimit:boundedSetting(env.AUTH_EMAIL_IP_LIMIT,120,15,500),emailGlobalLimit:boundedSetting(env.AUTH_EMAIL_GLOBAL_LIMIT,150,25,150),emailDailyLimit:boundedSetting(env.AUTH_EMAIL_DAILY_LIMIT,150,25,150),verifyIpLimit:boundedSetting(env.AUTH_VERIFY_IP_LIMIT,120,20,500)};
 }
 
-async function upstreamJson(response){
+async function upstreamJson(response,{allowArray=false}={}){
   if(response.status===204)return {};
   const limit=4*1024*1024,reader=response.body?.getReader(),chunks=[];let size=0;
   const unavailable=()=>fail(503,'service_unavailable','The account service returned an incomplete response. Check the latest status before submitting again.');
@@ -51,7 +52,7 @@ async function upstreamJson(response){
     if(reader)for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>limit){await reader.cancel();unavailable();}chunks.push(value);}
   }catch{unavailable();}
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
-  try{const value=JSON.parse(decoder.decode(bytes));if(!value||Array.isArray(value)||typeof value!=='object')throw Error();return value;}
+  try{const value=JSON.parse(decoder.decode(bytes));if(value===null||typeof value!=='object'||(!allowArray&&Array.isArray(value)))throw Error();return value;}
   catch{if(response.ok)unavailable();return {};}
 }
 
@@ -77,16 +78,17 @@ export async function handleApi(request,env={},context={}){
   const reply=(data,status=200)=>Response.json(data,{status,headers:responseHeaders});
   const fetcher=context.fetch||fetch;
   let current=null, user=null;
-  async function upstream(path,body,{token,service=false,method='POST'}={}){
+  async function upstream(path,body,{token,service=false,method='POST',returnRepresentation=false}={}){
     const authRequest=path.startsWith('/auth/v1/'),credential=authRequest&&config.authSecret?config.authSecret:service?config.secret:config.publicKey;
     const headers={apikey:credential,'Content-Type':'application/json'};
+    if(returnRepresentation)headers.Prefer='return=representation';
     if(token)headers.Authorization='Bearer '+token;
     else if(service&&credential.split('.').length===3)headers.Authorization='Bearer '+credential;
     const forwardedIp=authRequest&&config.authSecret&&config.forwardClientIp?trustedClientAddress(context):null;
     if(forwardedIp)headers['Sb-Forwarded-For']=forwardedIp;
     let response;
     try{response=await fetcher(config.base+path,{method,headers,...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000)});}catch{fail(503,'service_unavailable','The account service is temporarily unavailable. Please try again.');}
-    const data=await upstreamJson(response);
+    const data=await upstreamJson(response,{allowArray:path.startsWith('/rest/v1/research_submissions')||path.startsWith('/rest/v1/research_records')});
     if(!response.ok){
       if(path==='/auth/v1/admin/generate_link'&&[400,404,422].includes(response.status))fail(400,'invalid_details','The account request could not be accepted.');
       if(data.code==='42501'||response.status===403){
@@ -105,6 +107,12 @@ export async function handleApi(request,env={},context={}){
     return data;
   }
   const rpc=(action,payload={},actor=null)=>upstream('/rest/v1/rpc/directory_api',{p_action:action,p_payload:payload,p_actor:actor?.id||null,p_session:actor?claims(current.access).session_id||null:null,p_assurance:actor?claims(current.access).aal||'aal1':'aal1'},{service:true});
+  // Aggregate-only operational funnel. Never pass email, account, source or session
+  // identifiers. A reporting outage must never block registration or claims.
+  async function recordFunnel(event) {
+    try {const result=await upstream('/rest/v1/rpc/directory_funnel_record',{p_event:event},{service:true});return result.recorded===true;}
+    catch {return false;}
+  }
   async function rate(scope,identity,limit,seconds){const digest=await crypto.subtle.digest('SHA-256',encoder.encode('ID-EBP rate v1\0'+config.sessionSecret+'\0'+identity));await rpc('rate_limit',{key:scope+':'+b64(new Uint8Array(digest)),limit,seconds});}
   async function emailDeliveryBudget(){
     await rate('email-send-global','directory',config.emailGlobalLimit,3600);
@@ -159,6 +167,30 @@ export async function handleApi(request,env={},context={}){
     if(!config.configured){if(path==='/api/session'&&method==='GET')return reply({user:null});if(path==='/api/community'&&method==='GET')return reply({sources:{}});fail(503,'setup_required','Member accounts are being connected. You can browse every source.');}
     if(!['GET','POST','PUT','PATCH','DELETE'].includes(method))fail(405,'method_not_allowed','This request method is not supported.');
     if(method!=='GET'){sameOrigin(request);if(Number(request.headers.get('Content-Length'))>16384)fail(413,'body_too_large','The submitted details are too long.');}
+    // Only the trusted Cloudflare proxy can report email transport outcomes.
+    // Browser-supplied internal headers are stripped by the Worker.
+    if(path==='/api/funnel/mail-status'&&method==='POST'){
+      if(context.trustedTask!==true)fail(403,'forbidden','This request is restricted.');
+      const body=await jsonBody(request);
+      if(!['auth_mail_accepted','auth_mail_failed','claim_mail_accepted','claim_mail_failed'].includes(body.event))
+        fail(400,'invalid_details','Unsupported event.');
+      const recorded=await recordFunnel(body.event);
+      return reply({recorded},recorded?200:503);
+    }
+    if(path==='/api/funnel/event'&&method==='POST'){
+      const body=await jsonBody(request);
+      if(!['verify_click','register_view','claim_view'].includes(body.event))
+        fail(400,'invalid_details','Unsupported event.');
+      // A network-shared limit reduces inflated click counts without storing visitor identifiers.
+      await rate('aggregate-funnel-ip',context.clientIp||request.headers.get('CF-Connecting-IP')||'unknown',300,3600);
+      const recorded=await recordFunnel(body.event);
+      return reply({recorded},recorded?200:503);
+    }
+    const resourceMatch=path.match(/^\/api\/sources\/([a-z0-9]+(?:-[a-z0-9]+)*)\/resources$/);
+    if(resourceMatch&&method==='GET') {
+      await authenticate(false);
+      return reply(await rpc('resource_list',{slug:resourceMatch[1]},user));
+    }
     if(path==='/api/session'&&method==='GET')return reply(await sessionData());
     if(path==='/api/community'&&method==='GET')return reply(publicCommunity(await rpc('community')));
     if(path==='/api/auth/request'&&method==='POST'){
@@ -183,6 +215,7 @@ export async function handleApi(request,env={},context={}){
         try{if(recovery)await upstream('/auth/v1/recover',{email:address});else await upstream('/auth/v1/otp',{email:address,create_user:body.createAccount===true,data:{display_name:displayName}});}catch(error){if(!(error instanceof ApiError)||error.status!==400)throw error;}
       }
       responseHeaders.append('Set-Cookie',cookie(LOGIN_COOKIE,await seal({email:address,type:otpType,purpose:recovery?'reset':'signin',until:Date.now()+600000},config.sessionSecret),600));
+      if(body.createAccount===true&&!recovery)await recordFunnel('register_code_issued');
       return reply({sent:true,message:recovery?'If this address has an account, a password-reset code is on its way. Check your email.':'If this address can sign in, a verification code is on its way. Check your email.',...(delivery?{internalDelivery:delivery}:{})});
     }
     if(path==='/api/auth/password'&&method==='POST'){
@@ -207,7 +240,9 @@ export async function handleApi(request,env={},context={}){
       await writeSession(data);user=null;
       if(login.purpose==='reset'){current.recoveryUntil=Date.now()+600000;responseHeaders.set('Set-Cookie',cookie(SESSION_COOKIE,await seal(current,config.sessionSecret)));}
       responseHeaders.append('Set-Cookie',cookie(LOGIN_COOKIE,'',0));
-      const after=await sessionAfterWrite(data.user);return reply({...after.session,sessionRefreshPending:after.sessionRefreshPending===true,recovery:login.purpose==='reset'});
+      const after=await sessionAfterWrite(data.user);
+      if(login.purpose!=='reset')await recordFunnel('signin_code_verified');
+      return reply({...after.session,sessionRefreshPending:after.sessionRefreshPending===true,recovery:login.purpose==='reset'});
     }
     const sourceMatch=path.match(/^\/api\/sources\/([a-z0-9]+(?:-[a-z0-9]+)*)\/(community|profile|rating|tags|claim|claim-code|team|invite-editor|accept-editor|revoke-editor)$/);
     if(sourceMatch&&['team','invite-editor','accept-editor','revoke-editor'].includes(sourceMatch[2])){
@@ -229,6 +264,7 @@ export async function handleApi(request,env={},context={}){
         if(!/^\d{6,10}$/.test(code||''))fail(503,'auth_email_unavailable','Email verification is temporarily unavailable.');
         otpType=generated.verification_type||generated.properties?.verification_type||otpType;
         responseHeaders.append('Set-Cookie',cookie(CLAIM_COOKIE,await seal({slug,email:address,actor:member?.id||null,type:otpType,until:Date.now()+600000},config.sessionSecret),600));
+        await recordFunnel('claim_code_issued');
         return reply({sent:true,expiresIn:600,internalDelivery:{email:address,code,purpose:'claim'}});
       }
       const challenge=await open(cookies(request)[CLAIM_COOKIE],config.sessionSecret);
@@ -244,6 +280,7 @@ export async function handleApi(request,env={},context={}){
       // source mailbox. Anonymous claimants join using the mailbox just proved.
       if(!member){await writeSession(verified);user=verified.user;}
       const result=await rpc('claim_source',{slug,evidence,evidenceUrl,contactEmail:address,mailboxVerified:true},user);
+      await recordFunnel('claim_submitted');
       responseHeaders.append('Set-Cookie',cookie(CLAIM_COOKIE,'',0));
       return reply({...result,...await sessionAfterWrite()},201);
     }
@@ -302,6 +339,58 @@ export async function handleApi(request,env={},context={}){
       await upstream('/auth/v1/logout?scope=local',undefined,{token:current.access});
       responseHeaders.append('Set-Cookie',cookie(SESSION_COOKIE,'',0));return reply({user:null});
     }
+    if(path==='/api/research/submissions'&&method==='POST'){
+      const body=await jsonBody(request);
+      const title=String(body.title||'').trim(),authors=String(body.authors||'').trim();
+      const doi=String(body.doi||'').trim().replace(/^https?:\/\/(?:dx\.)?doi\.org\//i,'').toLowerCase()||null;
+      const urlValue=String(body.url||'').trim(),source_name=String(body.sourceName||'').trim();
+      const summary=String(body.summary||'').trim(),year=body.year?Number(body.year):null;
+      const tags=Array.isArray(body.tags)?[...new Set(body.tags.map(v=>String(v).trim().toLowerCase()))]:[];
+      if(title.length<5||title.length>300||authors.length<2||authors.length>1000||doi&&(!/^10\.\d{4,9}\/[\w.();/:+-]+$/i.test(doi)||doi.length>250)
+        ||!/^https:\/\/[^\s/]+/.test(urlValue)||urlValue.length>2048||source_name.length>200||summary.length>3000
+        ||year!==null&&(!Number.isInteger(year)||year<1600||year>2100)||tags.length>10||tags.some(v=>v.length>100))
+        fail(400,'invalid_details','Check the research details and try again.');
+      await rate('research-submission',actor.id,6,3600);
+      const existing=await upstream('/rest/v1/research_records?select=id&url=eq.'+encodeURIComponent(urlValue)+'&limit=1',undefined,{service:true,method:'GET'});
+      if(Array.isArray(existing)&&existing.length)fail(409,'already_submitted','This research is already in the catalogue.');
+      const saved=await upstream('/rest/v1/research_submissions?select=id,status',{submitter:actor.id,title,authors,publication_year:year,doi,url:urlValue,source_name,summary,tags},{service:true,returnRepresentation:true});
+      if(!Array.isArray(saved)||saved.length!==1||saved[0].status!=='pending')fail(503,'service_unavailable','Submission confirmation unavailable. Check your submissions before retrying.');
+      return reply({saved:true,id:saved[0].id,status:'pending'},201);
+    }
+    if(path==='/api/research/submissions'&&method==='GET'){
+      const records=await upstream('/rest/v1/research_submissions?select=id,title,authors,publication_year,doi,url,source_name,summary,tags,status,created_at&submitter=eq.'+encodeURIComponent(actor.id)+'&order=created_at.desc&limit=50',undefined,{service:true,method:'GET'});
+      return reply({submissions:records});
+    }
+    if(path==='/api/admin/research-submissions'&&method==='GET'){
+      const session=await rpc('session',{},actor);
+      if(session.admin!==true)fail(403,'admin_required','Administrator access is required.');
+      const items=await upstream('/rest/v1/research_submissions?select=id,title,authors,publication_year,doi,url,source_name,summary,tags,created_at,status&status=eq.pending&order=created_at.asc&limit=100',undefined,{service:true,method:'GET'});
+      return reply({submissions:items});
+    }
+    if(path==='/api/admin/research-submissions'&&method==='POST'){
+      const session=await rpc('session',{},actor);
+      if(session.admin!==true)fail(403,'admin_required','Administrator access is required.');
+      const body=await jsonBody(request);
+      if(!/^[a-f0-9-]{36}$/i.test(body.id||'')||!['approved','rejected'].includes(body.decision))fail(400,'invalid_details','Select a valid submission and decision.');
+      return reply(await upstream('/rest/v1/rpc/moderate_research_submission',{p_id:body.id,p_moderator:actor.id,p_decision:body.decision},{service:true}));
+    }
+    if(resourceMatch&&method==='POST'){
+      const body=await jsonBody(request);
+      if(!['annual_report','research','related_source','event','newsletter','other'].includes(body.type)
+        ||typeof body.title!=='string'||body.title.trim().length<5||body.title.length>240
+        ||typeof body.url!=='string'||!/^https:\/\/[^\s/]+/i.test(body.url)||body.url.length>2048
+        ||typeof body.description!=='string'||body.description.length>1200)
+        fail(400,'invalid_details','Enter a valid title, type, description and HTTPS link.');
+      await rate('resource-submit',actor.id,20,86400);
+      return reply(await rpc('resource_submit',{...body,slug:resourceMatch[1]},actor),202);
+    }
+    if(path==='/api/admin/resources'&&method==='GET')return reply(await rpc('resource_review_queue',{},actor));
+    if(path==='/api/admin/resources'&&method==='POST'){
+      const body=await jsonBody(request);
+      if(!/^[0-9a-f-]{36}$/i.test(body.id||'')||!['approved','rejected'].includes(body.decision))
+        fail(400,'invalid_details','Choose a valid resource and decision.');
+      return reply(await rpc('resource_moderate',body,actor));
+    }
     if(path==='/api/sources'&&method==='POST')return reply(await rpc('submit_source',await jsonBody(request),actor),201);
     if(sourceMatch){
       const [,slug,kind]=sourceMatch;
@@ -313,11 +402,35 @@ export async function handleApi(request,env={},context={}){
     }
     if(path==='/api/admin/people'&&method==='GET')return reply(await rpc('admin_people',{},actor));
     if(path==='/api/admin/sources'&&method==='GET')return reply(await rpc('admin_sources',{},actor));
-    if(path==='/api/admin/analytics'&&method==='GET')return reply(await rpc('admin_analytics',{},actor));
+    if(path==='/api/admin/research-verification'&&method==='GET') {
+      await rpc('admin_analytics',{},actor);
+      return reply(await upstream('/rest/v1/rpc/directory_research_verification_report',{},{service:true}));
+    }
+    if(path==='/api/admin/analytics'&&method==='GET') {
+       // The RPC checks the authenticated, active administrator account first.
+       const snapshot=await rpc('admin_analytics',{},actor);
+       const live=await trafficReports(env,url.searchParams.get('days'),{fetcher});
+       let funnel={status:'unavailable'};
+       try {
+         const days=[7,28,90].includes(Number(url.searchParams.get('days')))?Number(url.searchParams.get('days')):28;
+         funnel=await upstream('/rest/v1/rpc/directory_funnel_report',{p_days:days},{service:true});
+       } catch {}
+       return reply({...snapshot,...live,funnel});
+     }
     if(path==='/api/admin/manage'&&method==='POST')return reply(await rpc('admin_manage',await jsonBody(request),actor));
     if(path==='/api/admin/review-status'&&method==='GET')return reply(await rpc('review_status',{kind:url.searchParams.get('kind'),id:url.searchParams.get('id')},actor));
     if(path==='/api/admin/review'&&method==='GET')return reply(await rpc('admin_review',{},actor));
     if(path==='/api/admin/review'&&method==='POST')return reply(await rpc('moderate',await jsonBody(request),actor));
     fail(404,'not_found','This account action could not be found.');
-  }catch(error){return reply({error:{code:error instanceof ApiError?error.code:'service_unavailable',message:error instanceof ApiError?error.message:'The account service is temporarily unavailable. Please try again.'}},error instanceof ApiError?error.status:503);}
+  }catch(error){
+    // Operational errors are counted by endpoint only. Never log addresses or codes.
+    if(method==='POST'){
+      const event=path==='/api/auth/request'?'auth_request_failed'
+        :path==='/api/auth/verify'?'signin_verify_failed'
+        :/\/claim-code$/.test(path)?'claim_request_failed'
+        :/\/claim$/.test(path)?'claim_submit_failed':null;
+      if(event)await recordFunnel(event);
+    }
+    return reply({error:{code:error instanceof ApiError?error.code:'service_unavailable',message:error instanceof ApiError?error.message:'The account service is temporarily unavailable. Please try again.'}},error instanceof ApiError?error.status:503);
+  }
 }

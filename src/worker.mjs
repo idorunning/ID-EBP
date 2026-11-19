@@ -23,7 +23,22 @@ function readCommunity(env){
  void reading.finally(()=>{if(communityReads.get(env)===reading)communityReads.delete(env);}).catch(()=>{});
  return reading;
 }
-async function processApiResponse(response,request,env,signal){
+// Record Cloudflare Email Routing provider acceptance separately from code
+// generation. Provider acceptance is not proof of inbox delivery.
+async function recordMailOutcome(env,purpose,accepted){
+ if(!env.DIRECTORY_API_URL||!env.DIRECTORY_PROXY_SECRET)return;
+ const kind=purpose==='claim'?'claim':'auth';
+ try{
+  const endpoint=directoryEndpoint(env.DIRECTORY_API_URL);
+  const response=await timedOperation(signal=>fetch(endpoint+'/api/funnel/mail-status',{
+   method:'POST',redirect:'manual',signal,
+   headers:{'Content-Type':'application/json','Origin':'https://www.id-ebp.org','X-IDEBP-Proxy-Key':env.DIRECTORY_PROXY_SECRET,'X-IDEBP-Internal':'scheduled'},
+   body:JSON.stringify({event:kind+'_mail_'+(accepted?'accepted':'failed')})
+  }),5000);
+  await response.body?.cancel();
+ }catch{/* Email outcome telemetry must never affect verification. */}
+}
+async function processApiResponse(response,request,env,signal,context){
  if([204,205,304].includes(response.status))return response;
  // All account endpoints return JSON. Validate and strip private delivery data
  // at the public boundary for both the proxied and direct backend paths.
@@ -38,7 +53,14 @@ async function processApiResponse(response,request,env,signal){
    if(env.AUTH_EMAIL_ENABLED!=='true'||!env.EMAIL||typeof email!=='string'||email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||typeof code!=='string'||!/^\d{6,10}$/.test(code))throw Error('Mail unavailable');
    const reset=purpose==='reset',claim=purpose==='claim',account=purpose==='account',label=account?'account verification':reset?'password-reset':claim?'source claim':'verification';
    const instruction=account?'Return to your account settings on id-ebp.org and enter this code for the action you requested.':reset?'Return to the password-reset screen to choose a new password.':claim?'Return to your claim form on id-ebp.org and enter this code, then press Send claim.':'Enter it on id-ebp.org to sign in.';
+   const audit=accepted=>{const report=recordMailOutcome(env,purpose,accepted);if(context?.waitUntil)context.waitUntil(report);else void report;};
+   try {
    await timedOperation(()=>env.EMAIL.send({to:email,from:{email:'sign-in@auth.id-ebp.org',name:'ID-EBP'},subject:`Your ID-EBP ${label} code`,text:`Your ID-EBP ${label} code is ${code}. ${instruction} This code expires in 10 minutes. Do not share it. If you did not request it, ignore this email.`,html:`<p>Your ID-EBP ${label} code is:</p><h2>${code}</h2><p>${instruction} This code expires in 10 minutes. Do not share it. If you did not request it, ignore this email.</p>`}));
+    audit(true);
+   } catch(error) {
+    audit(false);
+    throw error;
+   }
   }
  }
  const headers=new Headers(response.headers);headers.delete('Content-Length');headers.delete('Content-Encoding');
@@ -53,7 +75,7 @@ export default {
     context.waitUntil(runDirectoryTasks(env,{maintenance:valid&&scheduledAt.getUTCMinutes()%30===0,scheduledTime:valid?scheduledAt.toISOString():null,report:summary=>console.log(JSON.stringify(summary))}));
     if(env.AI)context.waitUntil(runResearchIndex(env).then(r=>console.log(JSON.stringify({event:'research_index',completed:r.completed}))).catch(()=>console.log(JSON.stringify({event:'research_index',status:'retry'}))));
   },
-  async fetch(request,env={}) {
+  async fetch(request,env={},context={}) {
     const url=new URL(request.url);
     const security={
       'X-Content-Type-Options':'nosniff',
@@ -112,7 +134,7 @@ export default {
           // mutation would return failure while its database work kept running.
           if(!response)response=await handleApi(directRequest,env);
         }
-        response=await timedOperation(signal=>processApiResponse(response,request,env,signal),20000);
+        response=await timedOperation(signal=>processApiResponse(response,request,env,signal,context),20000);
         const headers=new Headers(response.headers);for(const [name,value] of Object.entries(security))headers.set(name,value);
         headers.set('Cache-Control','private, no-store, max-age=0');headers.set('Pragma','no-cache');headers.set('Vary','Cookie');
         return new Response(request.method==='HEAD'?null:response.body,{status:response.status,headers});
@@ -135,7 +157,7 @@ export default {
       const sources=catalogueFromCommunity(CATALOGUE,community);
       if(url.pathname==='/sitemap.xml')return new Response(request.method==='HEAD'?null:sitemap(sources),{headers:{...security,'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public, max-age=60'}});
       if(url.pathname==='/catalogue.json')return new Response(request.method==='HEAD'?null:JSON.stringify({name:'ID-EBP public source catalogue',url:'https://www.id-ebp.org',summaryNotice:'Auto-generated source summaries; source ownership verification is not study-quality certification.',sources:sources.map(s=>({id:s.id,name:s.name,url:s.url,profileUrl:'https://www.id-ebp.org/source/'+s.id,summary:s.about,country:s.country,topics:s.topics,types:s.types,verifiedOwner:Boolean(s.signals?.organisationConfirmed),checked:s.checked}))}),{headers:{...security,'Content-Type':'application/json; charset=utf-8','X-Robots-Tag':production?'index, follow':'noindex, nofollow'}});
-      if(url.pathname==='/llms.txt')return new Response(request.method==='HEAD'?null:'# International Directory of Evidence-Based Policing\n\nID-EBP signposts research sources; it does not certify individual studies. Source summaries are auto-generated and labelled.\n\n- [Directory](https://www.id-ebp.org/directory)\n- [Source guide](https://www.id-ebp.org/source-guide)\n- [Ranking and ownership verification](https://www.id-ebp.org/ranking)\n- [Public catalogue JSON](https://www.id-ebp.org/catalogue.json)\n- [Sitemap](https://www.id-ebp.org/sitemap.xml)\n\nContact: contact@id-ebp.org\n',{headers:{...security,'Content-Type':'text/plain; charset=utf-8'}});
+      if(url.pathname==='/llms.txt')return new Response(request.method==='HEAD'?null:'# International Directory of Evidence-Based Policing\n\nID-EBP is owned and operated by Thinking About Policing (https://thinkingaboutpolicing.org). It signposts research sources; it does not certify individual studies. Source summaries are auto-generated and labelled.\n\n- [Directory](https://www.id-ebp.org/directory)\n- [Source guide](https://www.id-ebp.org/source-guide)\n- [Ranking and ownership verification](https://www.id-ebp.org/ranking)\n- [Public catalogue JSON](https://www.id-ebp.org/catalogue.json)\n- [Sitemap](https://www.id-ebp.org/sitemap.xml)\n- [Who owns and runs ID-EBP](https://www.id-ebp.org/ownership)\n- [Listing and contact policy](https://www.id-ebp.org/listing-policy)\n- [Terms of use](https://www.id-ebp.org/terms)\n\nContact: hello@thinkingaboutpolicing.org\n',{headers:{...security,'Content-Type':'text/plain; charset=utf-8'}});
       const page=publicDocument(ASSETS['/index.html'].body,url.pathname,url.searchParams,sources);
       const nonce=btoa(crypto.randomUUID());
       const html=page.html.replace('<script type="application/ld+json">',`<script type="application/ld+json" nonce="${nonce}">`);

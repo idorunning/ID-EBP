@@ -1,5 +1,7 @@
 # IDEBP privacy notice — production draft
 
+> Superseded on 16 November 2026 by the published notice in `public/legal.js` (see `docs/legal-and-policies.md`).
+
 Updated 16 October 2026. **For review; do not publish this as the live-service notice until the items below are resolved.** The live service accepts accounts and source-management requests; this draft records proposed legal/privacy decisions and must not be treated as a completed legal review.
 
 ## Who is responsible

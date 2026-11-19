@@ -89,6 +89,22 @@ test('directory database permission and integrity checks',async t=>{
     await denied('anon',null,'select * from public.saved_sources');
   });
 
+  await t.test('verification analytics remain aggregate and service-only',async()=>{
+    await denied('anon',null,'select * from private.registration_funnel_daily');
+    await denied('authenticated',users.member,'select * from private.registration_funnel_daily');
+    await denied('anon',null,"select public.directory_funnel_record('verify_click')");
+    await denied('authenticated',users.member,"select public.directory_funnel_report(7)");
+    await as('service_role',null,async d=>{
+      await d.query("select public.directory_funnel_record('verify_click')");
+      await d.query("select public.directory_funnel_record('verify_click')");
+      const result=(await d.query("select public.directory_funnel_report(7) AS report")).rows[0].report;
+      assert.equal(result.totals.verify_click,2);
+      assert.equal(result.newAccounts>=0,true);
+      assert.ok(result.daily.every(row=>!('email' in row)&&!('user_id' in row)));
+      await assert.rejects(d.query("select public.directory_funnel_record('arbitrary')"),{code:'22023'});
+    });
+  });
+
   await t.test('each member sees and removes only their own saved sources',async()=>{
     await as('authenticated',users.member,async d=>{
       assert.deepEqual((await d.query('select source_id from public.saved_sources')).rows,[{source_id:first}]);
@@ -156,7 +172,7 @@ test('directory database permission and integrity checks',async t=>{
   await t.test('all application tables enable RLS and helper functions are not callable by client roles',async()=>{
     assert.deepEqual((await db.query("select c.relname from pg_class c join pg_namespace n on c.relnamespace=n.oid where n.nspname in ('public','private') and c.relkind='r' and not c.relrowsecurity")).rows,[]);
     for(const role of ['anon','authenticated','service_role']){
-      assert.deepEqual((await db.query("select p.proname from pg_proc p join pg_namespace n on p.pronamespace=n.oid where n.nspname='private' and (p.proname not in ('directory_core','directory_access','directory_reports','directory_saved') or $1<>'service_role') and has_function_privilege($1,p.oid,'EXECUTE')",[role])).rows,[]);
+      assert.deepEqual((await db.query("select p.proname from pg_proc p join pg_namespace n on p.pronamespace=n.oid where n.nspname='private' and (p.proname not in ('directory_core','directory_access','directory_reports','directory_saved','directory_before_resources') or $1<>'service_role') and has_function_privilege($1,p.oid,'EXECUTE')",[role])).rows,[]);
     }
   });
 
