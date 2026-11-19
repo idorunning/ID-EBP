@@ -52,6 +52,34 @@ test('direct backend transport delivers codes internally without returning them 
  assert.equal(response.status,200);assert.doesNotMatch(await response.text(),/internalDelivery|123456/);assert.equal(sent.length,1);assert.match(sent[0].text,/123456/);assert.match(response.headers.get('Set-Cookie'),/HttpOnly/);
 });
 
+test('claim mail provider outcomes are recorded without codes or recipient identifiers',async t=>{
+ const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);
+ const events=[],pending=[];
+ const env={...proxyEnv(),AUTH_EMAIL_ENABLED:'true',EMAIL:{send:async()=>({id:'accepted'})}};
+ globalThis.fetch=async request=>{
+   const url=new URL(request.url);
+   if(url.pathname.endsWith('/api/funnel/mail-status')){
+     const payload=await request.json();
+     events.push({event:payload.event,headers:request.headers,body:payload});
+     return Response.json({recorded:true});
+   }
+   return Response.json({sent:true,internalDelivery:{email:'fixture@university.test',code:'123456',purpose:'claim'}});
+ };
+ const ctx={waitUntil:p=>pending.push(p)};
+ let response=await worker.fetch(post('/api/sources/fixture/claim-code',{email:'fixture@university.test'}),env,ctx);
+ assert.equal(response.status,200);
+ assert.doesNotMatch(await response.text(),/123456|fixture@university.test/);
+ await Promise.all(pending.splice(0));
+ assert.deepEqual(events.map(x=>x.event),['claim_mail_accepted']);
+ assert.deepEqual(events[0].body,{event:'claim_mail_accepted'});
+ assert.equal(events[0].headers.get('X-IDEBP-Internal'),'scheduled');
+ env.EMAIL.send=async()=>{throw Error('fixture failed');};
+ response=await worker.fetch(post('/api/sources/fixture/claim-code',{email:'fixture@university.test'}),env,ctx);
+ assert.equal(response.status,503);
+ await Promise.all(pending.splice(0));
+ assert.deepEqual(events.map(x=>x.event),['claim_mail_accepted','claim_mail_failed']);
+});
+
 test('trusted backend validation rejects credentials, ports, queries and external hosts before sending a proxy secret',async t=>{
  for(const value of ['https://fixture.supabase.co:444/functions/v1/directory-api','https://user:pass@fixture.supabase.co/functions/v1/directory-api','https://fixture.supabase.co/functions/v1/directory-api?extra=1','https://untrusted.org/functions/v1/directory-api'])assert.throws(()=>directoryEndpoint(value));
  const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);let calls=0;globalThis.fetch=async()=>{calls++;throw Error('Must not fetch');};
