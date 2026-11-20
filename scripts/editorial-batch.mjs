@@ -34,6 +34,17 @@ export function sqlCall(fn, run, value) {
   return `select private.${fn}('${run}', ${tag}${json}${tag}::jsonb);`;
 }
 
+// Mirrors public.research_clean_summary: true when the stored summary counts as missing.
+const PLACEHOLDERS = ['Publisher-listed resource. Metadata recorded for discovery; independent evidence appraisal pending.',
+  'Public repository metadata entry. Eligibility and the underlying publication have not been verified.',
+  'Resource identified in the official source listing. Content and evidence have not yet been independently appraised.'];
+export function summaryIsBlank(value) {
+  const v = String(value ?? '');
+  return !v.trim() || PLACEHOLDERS.includes(v.trim()) ||
+    /Stage [0-9]+ (source )?inventory record|Item.level review has not yet been performed|Login or Register for Access|Username\(Required\).*Password|Hit enter to search or ESC to close/i.test(v) ||
+    /^\s*\[Skip to content\]/.test(v) || /^\s*#{1,4} *(Purpose|Background|Abstract|Objectives?|Aims?|Introduction|Context)\s/i.test(v);
+}
+
 // Longest run of consecutive words shared by a draft and a source text.
 export function longestSharedRun(draft, source) {
   const a = norm(draft).split(' ').filter(Boolean), b = ' ' + norm(source) + ' ';
@@ -183,7 +194,7 @@ function checkCommand(dir, run, file) {
       const problems = summaryProblems(d.summary, [ev.page.text || '', ev.doi?.openalex?.abstract || '', ev.record.summary || '']);
       if (problems.length) { rejected.push(`${d.id}: summary ${problems.join('; ')}`); continue; }
       item.summary = d.summary.trim();
-      if (String(ev.record.summary || '').trim() && !/^\s*(Stage \d+ (source )?inventory record|\[Skip to content\]|#{1,4} *(Purpose|Background|Abstract|Objectives?|Aims?|Introduction|Context)\s)/i.test(ev.record.summary)) {
+      if (!summaryIsBlank(ev.record.summary)) {
         if (!['copied_abstract', 'page_capture', 'not_descriptive', 'inaccurate'].includes(d.replace_reason)) {
           rejected.push(`${d.id}: existing summary needs replace_reason`); continue;
         }
