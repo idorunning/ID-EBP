@@ -24,3 +24,9 @@ test('printed SQL cannot be broken out of by record content', () => {
   assert.ok(sql.endsWith(`${tag}::jsonb);`));
   assert.throws(() => sqlCall('x', 'not-a-run', []), /--run/);
 });
+import { summaryIsBlank } from '../scripts/editorial-batch.mjs';
+test('helper treats the same summaries as blank as the database does', () => {
+  for (const v of ['', 'Stage 2 source inventory record for a collection', '[Skip to content](x) # T', '### Purpose\n\nText',
+    'Hit enter to search or ESC to closeSearch ### Login or Register for Access']) assert.equal(summaryIsBlank(v), true, v);
+  assert.equal(summaryIsBlank('A review of hot spots policing trials.'), false);
+});
