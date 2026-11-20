@@ -408,7 +408,8 @@ begin
         claimed_until=null,updated_at=now() where record_id=q.record_id;
       n_held:=n_held+1; continue;
     end if;
-    actions := '{}'::jsonb;
+    -- Per-record values must not carry over from the previous item in this loop.
+    actions := '{}'::jsonb; new_summary := null; new_authors := null; new_year := null; new_tags := null;
     -- Summary: original 1-2 sentence signposting text, no markup or links.
     new_summary := nullif(btrim(item->>'summary'),'');
     if new_summary is not null then

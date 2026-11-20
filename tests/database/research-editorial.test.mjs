@@ -150,7 +150,15 @@ test('editorial job: claim, evidence-checked writes, stale and invalid input, St
     await assert.rejects(sub3([{ id: 'org', tags: ['<b>x</b>'], evidence }]), /tags for org are not usable/);
     await assert.rejects(sub3([{ id: 'org', replace_reason: 'copied_abstract', evidence,
       summary: 'Summarises a review of community policing pilots across several English forces with recommendations for practice.' }]), /repeats ten/);
-    assert.equal((await sub3([{ id: 'org', tags: ['Community policing', 'Community policing'], evidence }])).filled, 1);
+    // A later item in the same submission must not inherit the earlier item's tags.
+    await db.exec(`insert into public.research_records values ('tagged','Tagged report','${url}','Named author',2024,
+      'Institution','source','A short existing summary of a tagged report.',array['Existing topic'],'report',null,null,null);
+      insert into private.research_editorial_queue(record_id,reasons,priority,status,run_id,claimed_until,claim_fingerprint)
+      select 'tagged','{field_evidence}',1,'claimed','${c3.run}',now()+interval '1 hour',md5((to_jsonb(r)-'search_vector')::text)
+      from public.research_records r where id='tagged';`);
+    assert.equal((await sub3([{ id: 'org', tags: ['Community policing', 'Community policing'], evidence },
+      { id: 'tagged', evidence }])).filled, 1);
+    assert.deepEqual(await one(db, `select tags from public.research_records where id='tagged'`), ['Existing topic']);
     assert.deepEqual(await one(db, `select tags from public.research_records where id='org'`), ['Community policing']);
     await assert.rejects(db.query(`insert into private.research_editorial_queue(record_id,reasons,priority,status) values ('x','{}',1,'held')`));
   } finally { await db.close(); }
