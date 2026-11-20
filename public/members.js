@@ -343,6 +343,25 @@ function saveClaimDraft(form){
  const draft={...claimDraft(slug),email:String(data.get('email')||''),evidence:String(data.get('evidence')??claimDraft(slug).evidence??''),evidenceUrl:String(data.get('evidenceUrl')??claimDraft(slug).evidenceUrl??'')};
  state.claimDrafts.set(slug,draft);try{globalThis.sessionStorage?.setItem('idebp-claim:'+slug,JSON.stringify(draft));}catch{}return {slug,draft};
 }
+function claimSourceOptions(sources, selected) {
+  return '<option value="">Choose a source</option>'+sources
+    .filter(source=>source.status!=='hidden')
+    .sort((a,b)=>a.name.localeCompare(b.name))
+    .map(source=>`<option value="${esc(sourceSlug(source))}"${sourceSlug(source)===selected?' selected':''}>${esc(source.name)}</option>`)
+    .join('');
+}
+
+export function updateClaimSourceOptions(root, sources, requestedSource='') {
+  const select=root.querySelector('[data-member-form="claim"] select[name="source"]');
+  if(!select)return;
+  const options=claimSourceOptions(sources);
+  if(select.dataset.sourceOptions===options)return;
+  const selected=select.value||requestedSource;
+  select.innerHTML=options;
+  if([...select.options].some(option=>option.value===selected))select.value=selected;
+  select.dataset.sourceOptions=options;
+}
+
 function claimForm({lang,sources,params}) {
  const selected=params?.get('claim')||state.claimTarget||'',draft=claimDraft(selected),source=sourceFor(sources,selected);
  const managed=state.session.managedSources?.some(item=>item.slug===selected);
@@ -350,7 +369,7 @@ function claimForm({lang,sources,params}) {
  if(managed)return `<div class="claim-status" role="status"><p class="member-badge is-verified">${i('shield')}You manage this source</p><h3>${esc(source?.name||selected)}</h3><a class="button" href="/source-workspace?edit=${safeId(selected)}">${esc(tr(lang,'edit'))}</a></div>`;
  if(claim)return `<div class="claim-status" role="status"><p class="member-badge">Awaiting review</p><h3>${esc(source?.name||claim.name||selected)}</h3><p>Your email has been verified and your claim is with an administrator. You do not need to send it again.</p><button class="button button-outline" data-member-action="refresh-claim">Check claim status</button></div>`;
  const sent=Boolean(draft.sentTo);
- return `<form data-member-form="claim" data-claim-step="${sent?'code':'email'}"><ol class="claim-progress" aria-label="Claim progress"><li ${!sent?'aria-current="step"':''}>1. Email</li><li ${sent?'aria-current="step"':''}>2. Code and send</li><li>3. Review</li></ol>${source?`<input type="hidden" name="source" value="${esc(selected)}"><h3>${esc(source.name)}</h3>`:`<label class="member-field"><span>${esc(tr(lang,'selectSource'))}</span><select name="source" required><option value="">Choose a source</option>${sources.filter(s=>s.status!=='hidden').slice().sort((a,b)=>a.name.localeCompare(b.name)).map(source=>`<option value="${esc(sourceSlug(source))}" ${sourceSlug(source)===selected?'selected':''}>${esc(source.name)}</option>`).join('')}</select></label>`}<p>Enter an email you use to represent this source. An administrator will review ownership before granting access.</p>${field('Source contact email','email',draft.email||'','type="email" autocomplete="email" maxlength="254" required')}${sent?`<p class="member-hint" role="status">Code sent to ${esc(draft.sentTo)}.</p>${field('Code from your email','token','','type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required')}<p class="member-hint">You can leave this tab or switch apps to get the code. Your form stays here. Codes last 10 minutes; requesting another keeps your details.</p><details ${draft.evidence||draft.evidenceUrl?'open':''}><summary>Supporting information (optional)</summary><p>The more information you provide, the easier it is to check your claim.</p><label class="member-field"><span>Your role or anything that helps us check (optional)</span><textarea name="evidence" maxlength="2000" rows="4">${esc(draft.evidence||'')}</textarea></label>${field('Public staff, website or contact page (optional)','evidenceUrl',draft.evidenceUrl||'','type="url" pattern="https://.+" maxlength="2048"')}</details><p><button type="button" class="text-link" data-member-action="claim-code"${disabled()}>Send another code</button></p>`:''}<p class="member-hint">Your email stays private. If you are new, verifying it also creates your member account.</p><button class="button" type="submit"${disabled()}>${sent?'Send claim':'Send verification code'}</button></form>`;
+ return `<form data-member-form="claim" data-claim-step="${sent?'code':'email'}"><ol class="claim-progress" aria-label="Claim progress"><li ${!sent?'aria-current="step"':''}>1. Email</li><li ${sent?'aria-current="step"':''}>2. Code and send</li><li>3. Review</li></ol>${source?`<input type="hidden" name="source" value="${esc(selected)}"><h3>${esc(source.name)}</h3>`:`<label class="member-field"><span>${esc(tr(lang,'selectSource'))}</span><select name="source" required>${claimSourceOptions(sources,selected)}</select></label>`}<p>Enter an email you use to represent this source. An administrator will review ownership before granting access.</p>${field('Source contact email','email',draft.email||'','type="email" autocomplete="email" maxlength="254" required')}${sent?`<p class="member-hint" role="status">Code sent to ${esc(draft.sentTo)}.</p>${field('Code from your email','token','','type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required')}<p class="member-hint">You can leave this tab or switch apps to get the code. Your form stays here. Codes last 10 minutes; requesting another keeps your details.</p><details ${draft.evidence||draft.evidenceUrl?'open':''}><summary>Supporting information (optional)</summary><p>The more information you provide, the easier it is to check your claim.</p><label class="member-field"><span>Your role or anything that helps us check (optional)</span><textarea name="evidence" maxlength="2000" rows="4">${esc(draft.evidence||'')}</textarea></label>${field('Public staff, website or contact page (optional)','evidenceUrl',draft.evidenceUrl||'','type="url" pattern="https://.+" maxlength="2048"')}</details><p><button type="button" class="text-link" data-member-action="claim-code"${disabled()}>Send another code</button></p>`:''}<p class="member-hint">Your email stays private. If you are new, verifying it also creates your member account.</p><button class="button" type="submit"${disabled()}>${sent?'Send claim':'Send verification code'}</button></form>`;
 }
 
 function sourceSuggestion(lang,expanded=false) {
