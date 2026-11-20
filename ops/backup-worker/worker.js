@@ -1,5 +1,5 @@
 // idebp-backup — nightly off-site encrypted backup of the ID-EBP database.
-// 1. POSTs to the Supabase backup-export function (read-only, snapshot-consistent JSON Lines).
+// 1. Pages through every table via the Supabase backup-export function (read-only; v2 paged export).
 // 2. gzips the stream, encrypts it (AES-256-GCM; the AES key is wrapped with an RSA-4096
 //    public key — only Nathan holds the private key), writes it to R2 bucket idebp-backups.
 // 3. Re-reads the object and checks its SHA-256; writes an unencrypted manifest (row counts only).
@@ -34,27 +34,62 @@ async function sendMail(env, subject, text) {
   catch (e) { console.log(JSON.stringify({ event: 'mail_failed', error: String(e) })); }
 }
 
+async function exportCall(env, body) {
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(EXPORT_URL, { method: 'POST', headers: { 'x-backup-token': env.EXPORT_TOKEN, 'content-type': 'application/json' },
+      body: JSON.stringify(body) });
+    if (res.ok) return res;
+    if (attempt >= 3 || res.status < 500) throw new Error(`export ${body.op} ${body.table ?? ''} returned HTTP ${res.status}`);
+    await new Promise((r) => setTimeout(r, 2000 * attempt));
+  }
+}
+
+// Pages through every table (v2 export) and writes the same idebp-backup-v1 JSON Lines as before:
+// header, then per table a "table" line and its "row" lines, then a footer with row counts.
+async function exportAll(env, writeLine) {
+  const { tables } = await (await exportCall(env, { op: 'tables' })).json();
+  if (!Array.isArray(tables) || !tables.length) throw new Error('export returned no tables');
+  const counts = {};
+  await writeLine({ kind: 'header', format: 'idebp-backup-v1', created_at: new Date().toISOString(), project: 'hvwmystbqlocjixvwgfl', paged: true });
+  for (const t of tables) {
+    await writeLine({ kind: 'table', table: t.table, columns: t.columns });
+    let after = null, n = 0;
+    for (let page = 0; page < 500; page++) {
+      const text = await (await exportCall(env, { op: 'rows', table: t.table, after, limit: 2000 })).text();
+      const lines = text.trimEnd().split('\n');
+      const tail = JSON.parse(lines.pop() || '{}');
+      if (tail.kind !== 'page' || tail.table !== t.table || tail.n !== lines.length) throw new Error(`export page incomplete for ${t.table}`);
+      if (lines.length) await writeLine(lines.join('\n'), true);
+      n += lines.length;
+      if (!tail.next) { after = null; break; }
+      after = tail.next;
+    }
+    if (after) throw new Error(`export did not finish ${t.table}`);
+    counts[t.table] = n;
+  }
+  await writeLine({ kind: 'footer', counts, finished_at: new Date().toISOString() });
+  return counts;
+}
+
 async function runBackup(env, when) {
   const day = when.toISOString().slice(0, 10);
-  const res = await fetch(EXPORT_URL, { method: 'POST', headers: { 'x-backup-token': env.EXPORT_TOKEN } });
-  if (!res.ok || !res.body) throw new Error(`export returned HTTP ${res.status}`);
-
-  // Watch the plain stream for the footer/error line while it is gzipped.
-  let tail = ''; let rawBytes = 0;
-  const dec = new TextDecoder();
-  const watch = new TransformStream({
-    transform(chunk, c) { rawBytes += chunk.byteLength; tail = (tail + dec.decode(chunk, { stream: true })).slice(-200000); c.enqueue(chunk); },
-  });
-  const gz = await readAll(res.body.pipeThrough(watch).pipeThrough(new CompressionStream('gzip')));
-
-  const lines = tail.trim().split('\n');
-  const last = JSON.parse(lines[lines.length - 1] || '{}');
-  if (last.kind === 'error') throw new Error(`export error: ${last.message}`);
-  if (last.kind !== 'footer') throw new Error('export incomplete: no footer line');
-  const counts = last.counts || {};
+  const enc = new TextEncoder();
+  const gzip = new CompressionStream('gzip');
+  const writer = gzip.writable.getWriter();
+  const gzipped = readAll(gzip.readable);
+  let rawBytes = 0;
+  const writeLine = async (value, raw = false) => {
+    const bytes = enc.encode((raw ? value : JSON.stringify(value)) + '\n');
+    rawBytes += bytes.byteLength;
+    await writer.write(bytes);
+  };
+  let counts;
+  try { counts = await exportAll(env, writeLine); }
+  catch (e) { await writer.abort(e).catch(() => {}); await gzipped.catch(() => {}); throw e; }
+  await writer.close();
+  const gz = await gzipped;
   const low = Object.entries(FLOORS).filter(([t, min]) => (counts[t] ?? 0) < min).map(([t, min]) => `${t} ${counts[t] ?? 0} < ${min}`);
 
-  // Hybrid encryption.
   const aes = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, gz));
@@ -75,7 +110,7 @@ async function runBackup(env, when) {
   const backHash = hex(await crypto.subtle.digest('SHA-256', await back.arrayBuffer()));
   if (backHash !== digest) throw new Error('verification failed: stored object hash differs');
 
-  const manifest = { key, created_at: new Date().toISOString(), export_started_at: lines[0]?.startsWith('{"kind":"header"') ? JSON.parse(lines[0]).created_at : null,
+  const manifest = { key, created_at: new Date().toISOString(),
     sha256: digest, encrypted_bytes: blob.byteLength, raw_bytes: rawBytes, counts, low_counts: low, verified: true };
   await env.BACKUPS.put(`manifests/${day}.json`, JSON.stringify(manifest, null, 2), { httpMetadata: { contentType: 'application/json' } });
   await env.BACKUPS.put('latest.json', JSON.stringify(manifest, null, 2), { httpMetadata: { contentType: 'application/json' } });
@@ -94,7 +129,8 @@ async function weeklySummary(env) {
 export default {
   async scheduled(controller, env, ctx) {
     const when = new Date(controller.scheduledTime);
-    ctx.waitUntil((async () => {
+    // Awaited (not waitUntil) so a long paged export keeps the invocation alive until it finishes.
+    await (async () => {
       try {
         const m = await runBackup(env, when);
         console.log(JSON.stringify({ event: 'backup_ok', key: m.key, bytes: m.encrypted_bytes }));
@@ -109,7 +145,7 @@ export default {
         if (!latest || Date.now() - Date.parse(latest.created_at) > 36 * 3600e3) await sendMail(env, 'ID-EBP backup STALE', `No successful backup in the last 36 hours (latest: ${latest?.created_at ?? 'none'}).`);
       } catch {}
       if (when.getUTCDay() === 0) await weeklySummary(env);
-    })());
+    })();
   },
   async fetch() { return new Response('Not found', { status: 404 }); },
 };
