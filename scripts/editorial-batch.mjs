@@ -148,7 +148,7 @@ async function evidenceCommand(dir, ids) {
     if (doi.crossref?.title) lines.push(`crossref: ${JSON.stringify({ title: doi.crossref.title, year: doi.crossref.year, authors: doi.crossref.authors.slice(0, 8), container: doi.crossref.container, type: doi.crossref.type })}`);
     if (doi.handle) lines.push(`doi handle: ${doi.handle.registered ? 'registered -> ' + doi.handle.target : 'not registered'}`);
     const excerpt = page.text ? page.text.slice(Math.max(0, norm(page.text).indexOf(norm(rec.title).split(' ')[0]) - 50), 1800) : '';
-    lines.push(`excerpt: ${excerpt.slice(0, 1400) || (doi.openalex?.abstract ? '(page unavailable; abstract available for reading only, do not copy)' : '(none)')}`);
+    lines.push(`excerpt: ${excerpt.replace(/\s+/g, ' ').slice(0, 1400) || (doi.openalex?.abstract ? '(page unavailable; abstract available for reading only, do not copy)' : '(none)')}`);
     if (!page.text && doi.openalex?.abstract) lines.push(`abstract (read only): ${doi.openalex.abstract.slice(0, 1200)}`);
     console.log(lines.join('\n') + '\n');
   }
