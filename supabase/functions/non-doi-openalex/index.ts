@@ -1,6 +1,7 @@
 import postgres from "npm:postgres@3.4.4";
 import { extract, fetchPage, norm, titleMatch } from "../_shared/publisher-metadata.ts";
 import { OPENALEX_ADVISORY_LOCK, retryAfterMs, retryDelayMs, searchAllowance } from "../_shared/openalex-policy.ts";
+import { HostBreaker, NON_SCHOLARLY_KINDS, publisherFailure } from "../_shared/publisher-retry.ts";
 
 const db = postgres(Deno.env.get("SUPABASE_DB_URL")!, { prepare: false, max: 8 });
 const batchLock = 68130920;
@@ -268,7 +269,8 @@ Deno.serve(async req => {
       where q.status='queued' and q.next_attempt_at<=now() and q.publisher_status not in ('verified','processing','pending')
         and not exists (select from private.doi_enrichment_queue d where d.record_id=r.id and d.status='verified')
         and not exists (select from private.enrichment_hourly_results e where e.batch_id=${batch} and e.record_id=r.id)
-      order by q.batch_no,q.record_id limit ${Math.min(4, limit, 35-searched, budget.allowance)}` : [];
+      order by (coalesce(r.kind_std,'') = any(${NON_SCHOLARLY_KINDS}::text[])),q.batch_no,q.record_id
+      limit ${Math.min(4, limit, 35-searched, budget.allowance)}` : [];
     const published = await db`with candidates as (
         select r.*, q.publisher_attempts, q.batch_no,
           row_number() over (partition by lower(split_part(r.url,'/',3)) order by q.batch_no,q.record_id) domain_order
@@ -280,14 +282,19 @@ Deno.serve(async req => {
       ) select * from candidates order by domain_order,batch_no,id limit ${limit - openAlex.length}`;
     let cursor = 0;
     let attemptedThisChunk = 0;
+    const breaker = new HostBreaker(2);
     const processPublishers = async () => {
       while (cursor < published.length && Date.now() < end) {
         const record = published[cursor++];
+        // A host failing repeatedly in this chunk is left for a later run instead of burning the batch.
+        if (breaker.isOpen(record.url)) continue;
         let result: Outcome;
-        try { result = await publisher(record); } catch {
-          const retry = record.publisher_attempts < 2
-            ? new Date(Date.now() + retryDelayMs(record.publisher_attempts + 1, 30 * 60_000)) : undefined;
-          result = { status: retry ? "pending" : "error", note: "Publisher fetch failed", retry };
+        try {
+          result = await publisher(record);
+          breaker.succeed(record.url);
+        } catch (error) {
+          breaker.fail(record.url);
+          result = publisherFailure(record.publisher_attempts, error, record.url);
         }
         await checkpoint(batch, record, "publisher", result);
         attemptedThisChunk++;

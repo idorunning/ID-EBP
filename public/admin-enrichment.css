@@ -47,6 +47,11 @@
 .enrichment-table { min-width: 550px; margin: .6rem 0; }
 .enrichment-database-nav { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-bottom: .85rem; }
 .enrichment-database-nav a[aria-current="page"] { font-weight: 750; }
+.enrichment-stages { display: grid; gap: .35rem; margin: .75rem 0 1rem; }
+.enrichment-stage { border-bottom: 1px solid #e5ebf1; padding-bottom: .35rem; }
+.enrichment-stage-label { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; font-size: .9rem; }
+.enrichment-stage-label span { color: #515e6e; font-variant-numeric: tabular-nums; }
+.enrichment-stage .enrichment-note { margin: 0 0 .25rem; font-size: .8rem; }
 @media (max-width: 850px) { .enrichment-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 650px) { .enrichment-daily,.enrichment-metrics,.enrichment-windows,.enrichment-ops-rates { grid-template-columns: minmax(0,1fr); } }
 @media (max-width: 410px) { .enrichment-summary article,.enrichment-metric { padding: .7rem; } }

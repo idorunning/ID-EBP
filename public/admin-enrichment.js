@@ -166,6 +166,67 @@ function operationsView({pipeline,windows,batches,errors,checkpoints,calculatedA
   </section>`;
 }
 
+const STAGES = [
+  [1,'Catalogued','Listed in the catalogue; screening not yet recorded.'],
+  [2,'Screened','Screened, but the publication is not yet confirmed by the DOI registry, OpenAlex or the publisher page.'],
+  [3,'Publication confirmed','Publication confirmed; one or more fields still lack reviewer evidence (summary, authors, year, topics, source or link).'],
+  [4,'Fields evidenced','Every field has a reviewer evidence URL; awaiting final link check, duplicate and issue review, and live search match.'],
+  [5,'Signed off','Assurance sign-off: all gates passed, including an exact match on live search.']
+];
+const BLOCKERS = {summary_missing:'Summary missing',author_or_organisation_missing:'Author or organisation missing',
+  publication_year_missing:'Year missing',topics_missing:'Topics missing',source_attribution_unresolved:'Source unresolved',
+  publication_evidence_requires_recheck:'Publication evidence needs recheck',publication_confirmation_pending:'Publication not yet confirmed',
+  current_field_evidence_required:'Reviewer field evidence needed',screening_pending:'Screening pending',research_link_missing:'Link missing',
+  title_missing:'Title missing',open_assurance_issue:'Open assurance issue',duplicate_review_pending:'Duplicate review pending',
+  search_index_pending:'Search index pending',final_review_required:'Final review needed',
+  live_search_confirmation_required:'Live search check needed',link_check_is_for_another_url:'Link check for another URL',
+  review_snapshot_changed:'Record changed since review'};
+
+export function stagePanelView(stages) {
+  if (!stages || !stages.total) return `<section class="member-panel enrichment-section" data-enrichment-stages>
+    <h3>Research stages 1–5</h3><p class="enrichment-note">Stage history has not been recorded yet.</p></section>`;
+  const total = stages.total, day = stages.last24h || {}, moved = stages.byStage24h || {};
+  const rows = STAGES.map(([n,label,meaning]) => {
+    const value = Number(stages.counts?.[n] ?? 0);
+    return `<div class="enrichment-stage" data-stage="${n}">
+      <div class="enrichment-stage-label"><strong>Stage ${n} · ${escape(label)}</strong>
+        <span>${count(value)} of ${count(total)} records</span></div>
+      ${progress(`Stage ${n}: ${label}`, value, total, n === 5 ? 'green' : n === 4 ? 'blue' : 'grey')}
+      <p class="enrichment-note">${escape(meaning)} Reached this stage in 24h: ${count(Number(moved[n] ?? 0))}.</p>
+    </div>`;
+  }).join('');
+  const blockers = Object.entries(stages.blockers || {}).sort((a,b) => b[1]-a[1]).slice(0,10)
+    .map(([key,n]) => `<li>${escape(BLOCKERS[key] || key)} · ${count(n)}</li>`).join('');
+  const queue = stages.editorialQueue || {};
+  return `<section class="member-panel enrichment-section" data-enrichment-stages>
+    <h3>Research stages 1–5</h3>
+    <p class="enrichment-note">Each record is counted once, at its highest stage. Percentages use all
+      ${count(total)} catalogue records as the denominator. All records are already public; Stage 5 is assurance sign-off,
+      not publication. Snapshot ${timeElement(stages.takenAt)}.</p>
+    <div class="enrichment-stages">${rows}</div>
+    <article class="member-panel enrichment-daily">
+      <div><h3>Stage changes, last 24 hours</h3>
+        <p class="enrichment-note">Reliable from ${timeElement(stages.reliableSince)}; earlier movement is not reconstructed.</p></div>
+      <dl class="enrichment-counts">
+        ${description('Records advanced (unique)',count(day.advancedRecords))}
+        ${description('Reached Stage 5',count(day.reachedStage5))}
+        ${description('Review attempts',count(day.reviewAttempts))}
+        ${description('Records reviewed (unique)',count(day.reviewedRecords))}
+        ${description('Summaries written',count(day.summariesWritten))}
+        ${description('Fields filled',count(day.fieldsFilled))}
+        ${description('Held back',count(day.heldBack))}
+        ${description('Moved back a stage',count(day.regressedRecords))}
+      </dl>
+    </article>
+    <details data-enrichment-detail="stage-blockers"><summary>What is holding records below Stage 5</summary>
+      <p>Blockers overlap; a record can have several. Below Stage 4 the Stage 4 gates are listed, otherwise the Stage 5 gates.</p>
+      <ul class="enrichment-errors">${blockers || '<li>None</li>'}</ul>
+      <p><strong>Editorial queue</strong> · queued ${count(queue.queued ?? 0)}, in progress ${count(queue.claimed ?? 0)},
+        done ${count(queue.done ?? 0)}, held with a reason ${count(queue.held ?? 0)}</p>
+    </details>
+  </section>`;
+}
+
 export function renderEnrichmentReport(report) {
   const day=report.windows.find(window=>window.days===1);
   const dayIsPartial=day && Date.parse(day.combined_since)>Date.parse(report.calculatedAt)-86400000;
@@ -177,7 +238,7 @@ export function renderEnrichmentReport(report) {
       ${description('Actually improved',count(day.improved))}
     </dl>
   </article>` : '';
-  return summaryView(report.totals)+daily+operationsView(report)+sections.map(section=>`
+  return summaryView(report.totals)+stagePanelView(report.stages)+daily+operationsView(report)+sections.map(section=>`
     <section class="member-panel enrichment-section"><h3>${section}</h3>
     <div class="enrichment-metrics">${report.metrics.filter(metric=>metric.section===section)
       .map(metric=>metricView({...metric,calculatedAt:report.calculatedAt})).join('')}</div></section>`).join('');

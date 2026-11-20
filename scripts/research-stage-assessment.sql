@@ -54,7 +54,7 @@ with reviews as (
     case when not confirmed then 'publication_confirmation_pending'
       when publication_evidence is null then 'publication_evidence_requires_recheck' end,
     case when coalesce(btrim(title),'')='' then 'title_missing' end,
-    case when btrim(coalesce(authors,'')) ~* '^(|not stated.*|not specified.*|unknown.*|responsible organisation:.*|n/a)$' then 'author_or_organisation_missing' end,
+    case when btrim(coalesce(authors,'')) ~* '^(|not stated.*|not specified.*|unknown.*|responsible organisation:.*|n/a|none listed.*|none|editor|editors|anonymous|various)$' then 'author_or_organisation_missing' end,
     case when year is null and not (
       coalesce(kind_std in ('not-research','publication-resource-page','information-webpage','nonpaper-resource'),false)
       and nullif(btrim(reviewed#>>'{year_not_applicable,reason}'),'') is not null
