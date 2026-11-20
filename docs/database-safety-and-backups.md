@@ -40,7 +40,7 @@ Tests: `tests/ops/safety-catch.pglite.mjs` (22 cases, including a fresh-session 
 
 | Part | Where |
 | --- | --- |
-| Export | Supabase Edge Function `backup-export` (read-only, repeatable-read snapshot, JSON Lines) |
+| Export | Supabase Edge Function `backup-export` v2 (read-only; the Worker pages through each table by primary key, 2,000 rows per request). From 17 to 20 November the single streamed export hit the Edge Function CPU limit and ended without its footer, so those nights' backups failed and were not stored. |
 | Store | Cloudflare Worker `idebp-backup`, cron 02:23 UTC daily |
 | Bucket | R2 `idebp-backups` (Western Europe) |
 | Encryption | AES-256-GCM per backup; the AES key is wrapped with an RSA-4096 public key. Only Nathan holds the private key (`idebp-backup-private-key.pem`). |
