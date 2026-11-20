@@ -266,7 +266,7 @@ Deno.serve(async req => {
     const budget = searched < 35 ? await providerAllowance(config.openalex_api_key) : { allowance: 0, reset: 0 };
     const openAlex = budget.allowance ? await db`select r.*, q.publisher_attempts
       from private.non_doi_enrichment_queue q join public.research_records r on r.id=q.record_id
-      where q.status='queued' and q.next_attempt_at<=now() and q.publisher_status not in ('verified','processing')
+      where q.status='queued' and q.next_attempt_at<=now() and q.publisher_status not in ('verified','processing','pending')
         and not exists (select from private.doi_enrichment_queue d where d.record_id=r.id and d.status='verified')
         and not exists (select from private.enrichment_hourly_results e where e.batch_id=${batch} and e.record_id=r.id)
       order by (coalesce(r.kind_std,'') = any(${NON_SCHOLARLY_KINDS}::text[])),q.batch_no,q.record_id
