@@ -109,11 +109,12 @@ test('editorial job: claim, evidence-checked writes, stale and invalid input, St
     await db.exec(`insert into public.research_search_documents select id,
       md5(left(concat_ws('. ',title,nullif(array_to_string(tags,', '),''),nullif(related_terms,''),nullif(public.research_clean_summary(summary),'')),1600)),
       lower(title) from public.research_records where id='blank'`);
-    const now = new Date().toISOString();
+    const now = new Date().toISOString(), fpNow = await fp(db, 'blank');
     const signoff = items => one(db, `select private.research_editorial_signoff($1,$2::jsonb)`, [claim.run, JSON.stringify(items)]);
-    assert.equal((await signoff([{ id: 'blank', live_found: false, checked_url: url, link_verified_at: now }])).stage5_signed_off, 0);
-    assert.equal((await signoff([{ id: 'blank', live_found: true, checked_url: url + '/other', link_verified_at: now }])).stage5_signed_off, 0);
-    assert.equal((await signoff([{ id: 'blank', live_found: true, checked_url: url, link_verified_at: now }])).stage5_signed_off, 1);
+    assert.equal((await signoff([{ id: 'blank', fingerprint: fpNow, live_found: false, checked_url: url, link_verified_at: now }])).stage5_signed_off, 0);
+    assert.equal((await signoff([{ id: 'blank', fingerprint: fpNow, live_found: true, checked_url: url + '/other', link_verified_at: now }])).stage5_signed_off, 0);
+    assert.equal((await signoff([{ id: 'blank', fingerprint: '0'.repeat(32), live_found: true, checked_url: url, link_verified_at: now }])).stage5_signed_off, 0, 'stale live check');
+    assert.equal((await signoff([{ id: 'blank', fingerprint: fpNow, live_found: true, checked_url: url, link_verified_at: now }])).stage5_signed_off, 1);
     assert.equal(await one(db, `select stage from private.research_stage_rows() where id='blank'`), 5);
     const run = await one(db, `select private.research_editorial_finish($1,'test')`, [claim.run]);
     assert.equal(run.signed_off, 1);
@@ -133,6 +134,24 @@ test('editorial job: claim, evidence-checked writes, stale and invalid input, St
     assert.equal(filled.filled, 2);
     assert.deepEqual((await db.query(`select authors,year from public.research_records where id='noauthor'`)).rows[0],
       { authors: 'Example Violence Reduction Unit', year: 2025 });
+    assert.deepEqual((await db.query(`select field,previous_value from private.research_field_evidence
+      where record_id='noauthor' and action='filled' order by field`)).rows,
+      [{ field: 'authors', previous_value: 'none listed' }, { field: 'year', previous_value: null }]);
+    // Organisation labels are never overwritten; replacements may not reuse the old text; tags reject markup.
+    await db.exec(`insert into public.research_records values ('org','Org report','${url}','Responsible organisation: Home Office',2024,
+      'Institution','source','A review of community policing pilots across several English forces with recommendations for practice.',
+      array[]::text[],'report',null,null,null);
+      insert into private.doi_enrichment_queue values ('org','verified',null,'${url}');
+      insert into private.verification_items values (0,'org',null,null,null,'automatic_screened','{}',now());
+      insert into private.research_editorial_queue(record_id,reasons,priority) values ('org','{topics_missing}',1);`);
+    const c3 = await one(db, `select private.research_editorial_claim(10,'Claude (automated evidence review)')`);
+    const sub3 = items => one(db, `select private.research_editorial_submit($1,$2::jsonb)`, [c3.run, JSON.stringify(items)]);
+    await assert.rejects(sub3([{ id: 'org', authors: 'Somebody Else', evidence }]), /already recorded/);
+    await assert.rejects(sub3([{ id: 'org', tags: ['<b>x</b>'], evidence }]), /tags for org are not usable/);
+    await assert.rejects(sub3([{ id: 'org', replace_reason: 'copied_abstract', evidence,
+      summary: 'Summarises a review of community policing pilots across several English forces with recommendations for practice.' }]), /repeats ten/);
+    assert.equal((await sub3([{ id: 'org', tags: ['Community policing', 'Community policing'], evidence }])).filled, 1);
+    assert.deepEqual(await one(db, `select tags from public.research_records where id='org'`), ['Community policing']);
     await assert.rejects(db.query(`insert into private.research_editorial_queue(record_id,reasons,priority,status) values ('x','{}',1,'held')`));
   } finally { await db.close(); }
 });

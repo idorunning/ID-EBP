@@ -4,10 +4,11 @@
 //
 //   node scripts/editorial-batch.mjs evidence --dir DIR ID...          fetch records and evidence; print a digest
 //   node scripts/editorial-batch.mjs check --dir DIR --run RUN FILE    validate drafts; print the submit call
-//   node scripts/editorial-batch.mjs live --run RUN ID...              live search + link check; print the sign-off call
+//   node scripts/editorial-batch.mjs live --run RUN ID:FP...           live search + link check; print the sign-off call
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { randomBytes } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { extract } from '../supabase/functions/_shared/publisher-metadata.ts';
@@ -22,6 +23,16 @@ export const norm = s => String(s ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '
 const isUrl = v => typeof v === 'string' && /^https?:\/\/[^\s/]+/.test(v) && v.length <= 2048;
 export const authorMissing = v => /^(|not stated.*|not specified.*|unknown.*|responsible organisation:.*|n\/a|none listed.*|none|editor|editors|anonymous|various)$/i
   .test(String(v ?? '').trim());
+
+// Emits a call with the JSON in a dollar-quoted literal whose tag is random and checked to be absent,
+// so record content (URLs may contain '$') cannot terminate the literal.
+export function sqlCall(fn, run, value) {
+  if (!/^[0-9a-f-]{36}$/.test(run || '')) throw Error('--run RUN is required');
+  const json = JSON.stringify(value);
+  const tag = `$ed_${randomBytes(8).toString('hex')}$`;
+  if (json.includes(tag)) throw Error('delimiter collision; try again');
+  return `select private.${fn}('${run}', ${tag}${json}${tag}::jsonb);`;
+}
 
 // Longest run of consecutive words shared by a draft and a source text.
 export function longestSharedRun(draft, source) {
@@ -172,7 +183,7 @@ function checkCommand(dir, run, file) {
       const problems = summaryProblems(d.summary, [ev.page.text || '', ev.doi?.openalex?.abstract || '', ev.record.summary || '']);
       if (problems.length) { rejected.push(`${d.id}: summary ${problems.join('; ')}`); continue; }
       item.summary = d.summary.trim();
-      if (String(ev.record.summary || '').trim() && !/^\s*(Stage \d+ (source )?inventory record|\[Skip to content\]|#{1,4} )/i.test(ev.record.summary)) {
+      if (String(ev.record.summary || '').trim() && !/^\s*(Stage \d+ (source )?inventory record|\[Skip to content\]|#{1,4} *(Purpose|Background|Abstract|Objectives?|Aims?|Introduction|Context)\s)/i.test(ev.record.summary)) {
         if (!['copied_abstract', 'page_capture', 'not_descriptive', 'inaccurate'].includes(d.replace_reason)) {
           rejected.push(`${d.id}: existing summary needs replace_reason`); continue;
         }
@@ -180,28 +191,34 @@ function checkCommand(dir, run, file) {
       }
     }
     if (d.authors) {
-      if (!authorMissing(ev.record.authors)) { rejected.push(`${d.id}: authors already recorded`); continue; }
+      if (!/^(|not stated|not specified|n\/a|none listed|none|unknown)$/i.test(String(ev.record.authors ?? '').trim())) {
+        rejected.push(`${d.id}: authors already recorded (only empty or placeholder authors can be filled)`); continue; }
+      if (/(https?:\/\/|www\.|[<>{}[\]|`*#])/.test(d.authors)) { rejected.push(`${d.id}: authors contain links or markup`); continue; }
       item.authors = String(d.authors).trim();
     }
     if (d.year != null) {
       if (ev.record.year != null) { rejected.push(`${d.id}: year already recorded`); continue; }
+      if (!Number.isInteger(Number(d.year))) { rejected.push(`${d.id}: year is not a whole number`); continue; }
       item.year = Number(d.year);
     }
-    if (Array.isArray(d.tags) && d.tags.length) item.tags = d.tags;
+    if (Array.isArray(d.tags) && d.tags.length) {
+      if (d.tags.some(t => /(https?:\/\/|www\.|[<>{}[\]|`*#])/.test(String(t)))) { rejected.push(`${d.id}: tags contain links or markup`); continue; }
+      item.tags = [...new Set(d.tags.map(t => String(t).trim()))];
+    }
     items.push(item);
   }
-  const json = JSON.stringify(items);
-  if (json.includes('$j$')) throw Error('unexpected delimiter in content');
-  const sql = `select private.research_editorial_submit('${run}', $j$${json}$j$::jsonb);`;
+  const sql = sqlCall('research_editorial_submit', run, items);
   writeFileSync(join(dir, 'submit.sql'), sql);
   console.error(`${items.length} item(s) ready, ${rejected.length} rejected` + (rejected.length ? ':\n  ' + rejected.join('\n  ') : ''));
   console.log(sql);
 }
 
-async function liveCommand(run, ids) {
+async function liveCommand(run, pairs) {
   if (!/^[0-9a-f-]{36}$/.test(run || '')) throw Error('--run RUN is required');
+  const fingerprints = Object.fromEntries(pairs.map(p => p.split(':')));
+  if (Object.values(fingerprints).some(f => !/^[a-f0-9]{32}$/.test(f || ''))) throw Error('arguments must be ID:FINGERPRINT');
   const items = [], notes = [];
-  for (const rec of await records(ids)) {
+  for (const rec of await records(Object.keys(fingerprints))) {
     let link = false;
     if (/^https?:\/\/(dx\.)?doi\.org\//i.test(rec.url)) {
       const doi = rec.url.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
@@ -212,11 +229,12 @@ async function liveCommand(run, ids) {
     }
     let found = false;
     try { found = await liveFound(rec); } catch (e) { notes.push(`${rec.id}: ${e.message}`); if (e.status === 429 || e.status >= 500) break; }
-    if (link && found) items.push({ id: rec.id, live_found: true, checked_url: rec.url, link_verified_at: new Date().toISOString() });
+    if (link && found) items.push({ id: rec.id, fingerprint: fingerprints[rec.id], live_found: true, checked_url: rec.url,
+      link_verified_at: new Date().toISOString() });
     else notes.push(`${rec.id}: ${link ? '' : 'link check failed '}${found ? '' : 'not found on live search'}`.trim());
   }
   console.error(`${items.length} ready for sign-off` + (notes.length ? '\n  ' + notes.join('\n  ') : ''));
-  console.log(`select private.research_editorial_signoff('${run}', $j$${JSON.stringify(items)}$j$::jsonb);`);
+  console.log(sqlCall('research_editorial_signoff', run, items));
 }
 
 async function main() {

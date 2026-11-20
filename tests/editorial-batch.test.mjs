@@ -15,3 +15,12 @@ test('author placeholders match the database gate', () => {
   for (const v of ['', 'none listed', 'Editor', 'Not stated', 'unknown author']) assert.equal(authorMissing(v), true, v);
   for (const v of ['Kent and Medway Violence Reduction Unit', 'Jerry Ratcliffe']) assert.equal(authorMissing(v), false, v);
 });
+import { sqlCall } from '../scripts/editorial-batch.mjs';
+test('printed SQL cannot be broken out of by record content', () => {
+  const run = '00000000-0000-4000-8000-000000000000';
+  const sql = sqlCall('research_editorial_signoff', run, [{ checked_url: 'https://x.org/$j$::jsonb); drop table x; --' }]);
+  const tag = sql.match(/(\$ed_[0-9a-f]{16}\$)/)[1];
+  assert.equal(sql.split(tag).length, 3);
+  assert.ok(sql.endsWith(`${tag}::jsonb);`));
+  assert.throws(() => sqlCall('x', 'not-a-run', []), /--run/);
+});

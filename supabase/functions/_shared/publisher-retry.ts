@@ -15,7 +15,8 @@ export function classifyFailure(error: unknown): { kind: FailureKind; detail: st
     return { kind: "timeout", detail: "timeout" };
   }
   const http = message.match(/Publisher HTTP (\d{3})/);
-  if (http) return { kind: "server", detail: "HTTP " + http[1] };
+  if (http && http[1].startsWith("5")) return { kind: "server", detail: "HTTP " + http[1] };
+  if (http) return { kind: "permanent", detail: "HTTP " + http[1] };
   if (/Invalid or non-public URL|Unsafe or invalid redirect|Too many redirects/.test(message)) {
     return { kind: "permanent", detail: message.slice(0, 80) };
   }

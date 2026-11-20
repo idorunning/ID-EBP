@@ -204,9 +204,8 @@ begin
   where s.stage is distinct from n.stage and s.record_id is not null;
   insert into private.research_stage_state(record_id,stage,changed_at,observed_at)
   select record_id,stage,now(),now() from pg_temp.stage_now
-  on conflict (record_id) do update set
-    changed_at=case when private.research_stage_state.stage<>excluded.stage then now() else private.research_stage_state.changed_at end,
-    stage=excluded.stage, observed_at=now();
+  on conflict (record_id) do update set changed_at=now(), stage=excluded.stage, observed_at=now()
+    where private.research_stage_state.stage<>excluded.stage;
   delete from private.research_stage_state s where not exists (select from pg_temp.stage_now n where n.record_id=s.record_id);
   insert into private.research_stage_snapshots(taken_at,total,counts,blockers)
   select now(),count(*),
@@ -263,6 +262,7 @@ create table if not exists private.research_field_evidence (
   record_fingerprint text not null,
   reviewer text not null,
   run_id uuid references private.research_editorial_runs(id),
+  previous_value text,
   note text,
   recorded_at timestamptz not null default now()
 );
@@ -277,10 +277,31 @@ begin raise exception 'research_field_evidence is append-only'; end; $fn$;
 drop trigger if exists research_field_evidence_append_only on private.research_field_evidence;
 create trigger research_field_evidence_append_only before update or delete on private.research_field_evidence
   for each row execute function private.refuse_evidence_change();
+drop trigger if exists research_field_evidence_no_truncate on private.research_field_evidence;
+create trigger research_field_evidence_no_truncate before truncate on private.research_field_evidence
+  for each statement execute function private.refuse_evidence_change();
 
 create or replace function private.research_author_missing(value text) returns boolean
 language sql immutable set search_path='' as $fn$
   select btrim(coalesce(value,'')) ~* '^(|not stated.*|not specified.*|unknown.*|responsible organisation:.*|n/a|none listed.*|none|editor|editors|anonymous|various)$'
+$fn$;
+
+-- Only an empty value or a pure placeholder may be filled. Organisation labels such as
+-- "Responsible organisation: Home Office", "Anonymous" or "Various" are kept and need human review.
+create or replace function private.research_author_fillable(value text) returns boolean
+language sql immutable set search_path='' as $fn$
+  select btrim(coalesce(value,'')) ~* '^(|not stated|not specified|n/a|none listed|none|unknown)$'
+$fn$;
+create or replace function private.research_words(value text) returns text
+language sql immutable set search_path='' as $fn$
+  select btrim(regexp_replace(lower(coalesce(value,'')),'[^[:alnum:]]+',' ','g'))
+$fn$;
+-- True when the draft shares a run of ten or more consecutive words with the given text.
+create or replace function private.research_shares_run(draft text, source text) returns boolean
+language sql immutable set search_path='' as $fn$
+  with w as (select regexp_split_to_array(private.research_words(draft),' ') a, ' '||private.research_words(source)||' ' b)
+  select exists(select from w, generate_series(1,greatest(cardinality(w.a)-9,0)) i
+    where position(' '||array_to_string(w.a[i:i+9],' ')||' ' in w.b)>0)
 $fn$;
 
 -- Seeds (and tops up) the queue from the live gates. Idempotent: done/held rows are left alone,
@@ -309,6 +330,13 @@ begin
   on conflict (record_id) do update set reasons=excluded.reasons,priority=excluded.priority,updated_at=now()
     where private.research_editorial_queue.status='queued';
   get diagnostics added = row_count;
+  -- Done rows the gates still block on editorial grounds (partly fixed, or changed since) come back daily.
+  update private.research_editorial_queue q set status='queued',run_id=null,claimed_until=null,updated_at=now(),
+    note='Requeued: editorial gaps remain'
+  from private.research_stage_rows() a
+  where a.id=q.record_id and q.status='done' and q.attempts<5 and q.updated_at<now()-interval '1 day'
+    and a.stage in (2,3) and a.stage4_blockers && array['summary_missing','author_or_organisation_missing',
+      'publication_year_missing','topics_missing','current_field_evidence_required'];
   update private.research_editorial_queue set status='queued',held_reason=null,run_id=null,claimed_until=null,updated_at=now(),
     note='Requeued after evidence was unreachable'
   where status='held' and held_reason like 'evidence unreachable%' and attempts<3 and updated_at<now()-interval '3 days';
@@ -354,7 +382,7 @@ declare
   item jsonb; rec public.research_records; q private.research_editorial_queue;
   fp text; new_fp text; v_reviewer text;
   new_summary text; new_authors text; new_year integer; new_tags text[];
-  f text; ev text; actions jsonb; reviews jsonb := '{}'::jsonb; outcome jsonb;
+  f text; ev text; actions jsonb; old_values jsonb; reviews jsonb := '{}'::jsonb; outcome jsonb;
   n_written integer:=0; n_filled integer:=0; n_held integer:=0; n_stale integer:=0; n_skipped integer:=0; n_s4 integer:=0;
   fields constant text[] := array['title','authors','year','source','summary','tags','url'];
 begin
@@ -363,6 +391,7 @@ begin
   if jsonb_typeof(p_items) is distinct from 'array' or jsonb_array_length(p_items)>50 then
     raise exception 'items must be an array of at most 50'; end if;
   v_reviewer := v_run.reviewer;
+  perform pg_advisory_xact_lock(68130921);  -- same order as research_stage_apply and the runner
   for item in select value from jsonb_array_elements(p_items) loop
     select * into q from private.research_editorial_queue where record_id=item->>'id' for update;
     if q.record_id is null or q.status<>'claimed' or q.run_id is distinct from p_run then n_skipped:=n_skipped+1; continue; end if;
@@ -394,6 +423,9 @@ begin
         if item->>'replace_reason' is null or item->>'replace_reason' not in ('copied_abstract','page_capture','not_descriptive','inaccurate') then
           raise exception 'summary for % already exists; a replace_reason is required', q.record_id;
         end if;
+        if private.research_shares_run(new_summary, rec.summary) then
+          raise exception 'summary for % repeats ten or more consecutive words of the summary it replaces', q.record_id;
+        end if;
         actions := actions||jsonb_build_object('summary','replaced');
       else
         actions := actions||jsonb_build_object('summary','written');
@@ -401,8 +433,9 @@ begin
     end if;
     new_authors := nullif(btrim(item->>'authors'),'');
     if new_authors is not null then
-      if not private.research_author_missing(rec.authors) then raise exception 'authors for % are already recorded', q.record_id; end if;
-      if private.research_author_missing(new_authors) or length(new_authors)>1200 then raise exception 'authors for % are not usable', q.record_id; end if;
+      if not private.research_author_fillable(rec.authors) then raise exception 'authors for % are already recorded', q.record_id; end if;
+      if private.research_author_missing(new_authors) or length(new_authors)>1200
+         or new_authors ~ '(https?://|www\.|[<>{}\[\]|`*#])' then raise exception 'authors for % are not usable', q.record_id; end if;
       actions := actions||jsonb_build_object('authors','filled');
     end if;
     new_year := (item->>'year')::integer;
@@ -413,8 +446,9 @@ begin
     end if;
     if jsonb_typeof(item->'tags')='array' and jsonb_array_length(item->'tags')>0 then
       if exists(select from unnest(rec.tags) t where btrim(t)<>'') then raise exception 'tags for % are already recorded', q.record_id; end if;
-      select array_agg(btrim(t)) into new_tags from jsonb_array_elements_text(item->'tags') t;
-      if cardinality(new_tags)>6 or exists(select from unnest(new_tags) t where length(t) not between 3 and 60) then
+      select array_agg(distinct btrim(t)) into new_tags from jsonb_array_elements_text(item->'tags') t;
+      if cardinality(new_tags)>6 or exists(select from unnest(new_tags) t where length(t) not between 3 and 60
+           or t ~ '(https?://|www\.|[<>{}\[\]|`*#])') then
         raise exception 'tags for % are not usable', q.record_id; end if;
       actions := actions||jsonb_build_object('tags','filled');
     end if;
@@ -424,6 +458,7 @@ begin
       if ev is null or ev !~ '^https?://[^[:space:]/]+' or length(ev)>2048 then
         raise exception 'evidence URL missing for % / %', q.record_id, f; end if;
     end loop;
+    old_values := jsonb_build_object('summary',rec.summary,'authors',rec.authors,'year',rec.year::text,'tags',array_to_string(rec.tags,'; '));
     update public.research_records set
       summary=coalesce(new_summary,summary), authors=coalesce(new_authors,authors),
       year=coalesce(new_year,year), tags=coalesce(new_tags,tags)
@@ -432,9 +467,10 @@ begin
     select * into rec from public.research_records where id=q.record_id;
     new_fp := md5((to_jsonb(rec)-'search_vector')::text);
     foreach f in array fields loop
-      insert into private.research_field_evidence(record_id,field,action,evidence_url,record_fingerprint,reviewer,run_id,note)
+      insert into private.research_field_evidence(record_id,field,action,evidence_url,record_fingerprint,reviewer,run_id,
+        previous_value,note)
       values (q.record_id,f,coalesce(actions->>f,'confirmed'),item#>>array['evidence',f],new_fp,v_reviewer,p_run,
-        case when f='summary' then item->>'replace_reason' end);
+        case when actions ? f then old_values->>f end, case when f='summary' then item->>'replace_reason' end);
     end loop;
     if actions ? 'summary' then n_written:=n_written+1; end if;
     n_filled := n_filled + (select count(*) from jsonb_object_keys(actions) k where k<>'summary');
@@ -474,13 +510,17 @@ begin
   ), assessed as (
     select a.record_id,a.checks from private.enrichment_dashboard_assurance() a where a.record_id in (select id from wanted)
   )
+  -- duplicate_reviewed is asserted here because the gates themselves refuse Stage 5 while any duplicate
+  -- group containing the record is unreviewed; relevance evidence is the page the summary was written from.
   select jsonb_object_agg(w.id,((a.checks->'stage4_review')-'final')||jsonb_build_object(
-      'final',jsonb_build_object('relevance_evidence',coalesce(a.checks#>>'{stage4_review,evidence,summary}',r.url),
+      'final',jsonb_build_object('relevance_evidence',a.checks#>>'{stage4_review,evidence,summary}',
         'checked_url',r.url,'link_verified_at',w.item->>'link_verified_at','duplicate_reviewed',true),
       'live_found',true))
   into v_reviews
   from wanted w join public.research_records r on r.id=w.id join assessed a on a.record_id=w.id
   where a.checks#>>'{stage4_review,fingerprint}'=md5((to_jsonb(r)-'search_vector')::text)
+    and w.item->>'fingerprint'=md5((to_jsonb(r)-'search_vector')::text)
+    and a.checks#>>'{stage4_review,evidence,summary}' ~ '^https?://[^[:space:]/]+'
     and w.item->>'checked_url'=r.url;
   if v_reviews is null then return jsonb_build_object('stage5_signed_off',0,'considered',jsonb_array_length(p_items)); end if;
   v_outcome := private.research_stage_apply(v_reviews);
@@ -501,13 +541,18 @@ begin
   return to_jsonb(v_run);
 end;
 $fn$;
-revoke all on function private.research_author_missing(text), private.research_editorial_seed(),
+revoke all on function private.research_author_missing(text), private.research_author_fillable(text),
+  private.research_words(text), private.research_shares_run(text,text), private.research_editorial_seed(),
   private.research_editorial_claim(integer,text), private.research_editorial_submit(uuid,jsonb),
   private.research_editorial_signoff(uuid,jsonb), private.research_editorial_finish(uuid,text),
   private.refuse_evidence_change() from public, anon, authenticated;
 
 create or replace function private.research_stage_report() returns jsonb
-language sql stable set search_path='' as $fn$
+language plpgsql stable set search_path='' as $fn$
+declare result jsonb;
+begin
+  if to_regclass('private.verification_items') is null then return null; end if;
+  execute $q$
   with latest as (select * from private.research_stage_snapshots order by taken_at desc limit 1),
   first as (select min(taken_at) since from private.research_stage_snapshots),
   day as (select * from private.research_stage_transitions where changed_at>now()-interval '24 hours'),
@@ -531,7 +576,10 @@ language sql stable set search_path='' as $fn$
       (select to_stage,count(distinct record_id) n from day where to_stage>coalesce(from_stage,0) group by to_stage) z),
     'editorialQueue',(select jsonb_object_agg(status,n) from (select status,count(*) n
       from private.research_editorial_queue group by status) q))
-  from latest l cross join first f;
+  from latest l cross join first f
+  $q$ into result;
+  return result;
+end;
 $fn$;
 revoke all on function private.research_stage_report() from public, anon, authenticated;
 

@@ -8,10 +8,10 @@ regenerate — `npm test` fails if the two drift apart).
 
 - Writes **original** one- to two-sentence signposting summaries in British English. Abstracts and publisher
   text are read for understanding only; drafts that share 10 or more consecutive words with the evidence are rejected.
-- Fills `authors`, `year` and `tags` **only where missing** (or a placeholder such as "none listed"), from the
+- Fills `authors`, `year` and `tags` **only where missing** (or a pure placeholder such as "none listed"; labels such as "Responsible organisation: …", "Anonymous" or "Various" are never overwritten), from the
   evidence page or DOI registry metadata. Titles and URLs are never changed. A non-empty summary is replaced only
   with a stated reason (`copied_abstract`, `page_capture`, `not_descriptive`, `inaccurate`).
-- Records an evidence URL for **every** field (`private.research_field_evidence`, append-only), then records the
+- Records an evidence URL for **every** field (`private.research_field_evidence`, append-only), with the previous value of anything filled or replaced, then records the
   Stage 4 review through the same gate logic as `scripts/advance-research-stages.mjs` (`private.research_stage_apply`).
 - Signs off Stage 5 only with a live-search exact match and a link check from the last seven days
   (`private.research_editorial_signoff`).
@@ -52,11 +52,11 @@ node scripts/editorial-batch.mjs check --dir /tmp/ed --run RUN /tmp/ed/drafts.js
 Run the printed `select private.research_editorial_submit(...)`. Then sign off records at Stage 4:
 
 ```sql
-select coalesce(jsonb_agg(id),'[]') from (select id from private.research_stage_rows() where stage=4 limit 60) x;
+select string_agg(id||':'||fingerprint,' ') from (select id,fingerprint from private.research_stage_rows() where stage=4 limit 60) x;
 ```
 
 ```sh
-node scripts/editorial-batch.mjs live --run RUN ID...            # prints the sign-off call
+node scripts/editorial-batch.mjs live --run RUN ID:FP...         # prints the sign-off call
 ```
 
 Finish with `select private.research_editorial_finish('RUN','note');` (releases unfinished claims, refreshes stages).
@@ -71,3 +71,9 @@ select private.research_stage_report();
 ```
 
 Pause: disable the scheduled task. Queue rows, run logs and evidence are retained; nothing needs resetting.
+
+## After applying the migration
+
+The stricter `research_clean_summary` blanks placeholder text, page captures and copied markdown abstracts in search
+documents only after they are rebuilt. Run `select public.research_reindex(:after_id, 500)` from `''` until `count` is 0
+(only documents whose content hash changed lose their embedding and are re-queued).

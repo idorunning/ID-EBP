@@ -62,3 +62,8 @@ test('requeue migration returns only transient publisher errors to the queue', a
     assert.equal(rows[0].spread, true);
   } finally { await db.close(); }
 });
+test('only 5xx responses are retried; other 4xx are permanent', () => {
+  assert.equal(classifyFailure(new Error('Publisher HTTP 451')).kind, 'permanent');
+  assert.equal(publisherFailure(0, new Error('Publisher HTTP 406'), 'https://x.org/a', 0).status, 'error');
+  assert.equal(publisherFailure(0, new Error('Publisher HTTP 502'), 'https://x.org/a', 0).status, 'pending');
+});
