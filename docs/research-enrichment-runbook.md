@@ -46,8 +46,9 @@ Check with `select jobid, jobname, schedule, active from cron.job order by jobid
 - `doi-openalex-bulk-every-5-minutes` — every 5 minutes
 - `doi-datacite-fallback` — every 15 minutes
 - `id-ebp-research-assurance-hourly` — at minute 50 UTC, screens up to 250 previously unscreened records and records evidence references and exceptions in the existing assurance tables.
+- `id-ebp-research-stage-refresh` — at minute 40 UTC, records each record's stage and any change (Live Enrichment stage panel).
 - `id-ebp-research-enrichment-hourly` — at minute 55 UTC, targets 250 records. It runs short invocations of up to 16 records and uses the same batch ID throughout. The lease prevents overlapping runs. The next hourly tick can resume the remaining work after a failed or expired batch.
-- The previous minute-by-minute OpenAlex and publisher triggers are disabled. The worker makes up to 35 single-concurrency OpenAlex title searches per hour, subject to the remaining budget and a 1,000-credit reserve for existing discovery. It can continue publisher checks while OpenAlex is deferred. Each billable OpenAlex caller shares the same database request lock.
+- The previous minute-by-minute OpenAlex and publisher triggers are disabled. The worker makes up to 35 single-concurrency OpenAlex title searches per hour, subject to the remaining budget and a 1,000-credit reserve for existing discovery. It can continue publisher checks while OpenAlex is deferred. OpenAlex searches go to scholarly record kinds first. Since 20 November, a publisher fetch that times out, cannot connect or returns HTTP 5xx is retried after 30 minutes, 3, 12, 24 and 72 hours (six attempts in all), with the reason and host in the note; a host that fails twice within one invocation is skipped for the rest of that chunk. Other 4xx responses are final. A record waiting for a publisher retry is not title-searched in OpenAlex until that retry settles (so one record is never checked by both methods in one chunk). Each billable OpenAlex caller shares the same database request lock.
 - `doi-queue-add-discovered` — every 30 minutes, adds newly recovered DOIs
 - `doi-enrichment-recover-stalled`, `doi-datacite-recover-stalled`, `non-doi-recover-stalled`, `non-doi-publisher-recover-stalled` — interrupted-job recovery
 
@@ -151,3 +152,8 @@ Stage 5 additionally requires a current reviewer link check, relevance evidence,
 no open assurance issues, a current search index and an exact record match on ID-EBP's live search.
 It records the gate outcomes as an assurance checkpoint. A changed catalogue row requires a fresh
 review, and repeating a successfully applied run creates no duplicate checkpoint.
+
+## Editorial job (summaries and evidenced gap filling)
+
+See `docs/research-editorial-job.md`. Original summaries, missing authors/years/tags and per-field evidence are
+written by a scheduled, leased batch job inside this database; it records Stage 4 and Stage 5 through the same gates.
